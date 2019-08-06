@@ -141,6 +141,48 @@ let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
 let product = ua_parser.parse_product("Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.2.12) Gecko/20101027 Ubuntu/10.04 (lucid) Firefox/3.6.12").into_owned();
 ```
 
+## Rocket Support
+
+This crate supports the Rocket framework. All you have to do is enabling the `rocketly` feature for this crate.
+
+```toml
+[dependencies.user-agent-parser]
+version = "*"
+features = ["rocketly"]
+```
+
+Let `Rocket` manage a `UserAgentParser` instance, and the `Product`, `OS`, `Device`, `CPU`, `Engine` models of this crate (plus the `UserAgent` model) can be used as *Request Guards*.
+
+```rust,ignore
+#![feature(proc_macro_hygiene, decl_macro)]
+
+#[macro_use]
+extern crate rocket;
+
+extern crate user_agent_parser;
+
+use user_agent_parser::{UserAgentParser, UserAgent, Product, OS, Device, CPU, Engine};
+
+#[get("/")]
+fn index(user_agent: UserAgent, product: Product, os: OS, device: Device, cpu: CPU, engine: Engine) -> String {
+    format!("{user_agent:#?}\n{product:#?}\n{os:#?}\n{device:#?}\n{cpu:#?}\n{engine:#?}",
+            user_agent = user_agent,
+            product = product,
+            os = os,
+            device = device,
+            cpu = cpu,
+            engine = engine,
+    )
+}
+
+fn main() {
+    rocket::ignite()
+        .manage(UserAgentParser::from_path("/path/to/regexes.yaml").unwrap())
+        .mount("/", routes![index])
+        .launch();
+}
+```
+
 ## Testing
 
 ```bash
@@ -155,9 +197,15 @@ cargo test
 extern crate yaml_rust;
 extern crate onig;
 
+#[cfg(feature = "rocketly")]
+extern crate rocket;
+
 mod errors;
 mod regexes;
 mod models;
+
+#[cfg(feature = "rocketly")]
+mod request_guards;
 
 use std::path::Path;
 use std::fs;
