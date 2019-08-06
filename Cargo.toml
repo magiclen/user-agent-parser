@@ -3,6 +3,17 @@ name = "user-agent-parser"
 version = "0.1.0"
 authors = ["Magic Len <len@magiclen.org>"]
 edition = "2018"
+repository = "https://github.com/magiclen/user-agent-parser"
+homepage = "https://magiclen.org/user-agent-parser"
+keywords = ["useragent", "user-agent", "uap", "ua-parser", "uap-core"]
+categories = ["parser-implementations"]
+description= "A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by https://github.com/faisalman/ua-parser-js and https://github.com/ua-parser/uap-core"
+readme = "README.md"
+license = "MIT"
+
+[badges.travis-ci]
+repository = "magiclen/user-agent-parser"
+branch = "master"
 
 [dependencies]
 yaml-rust = "0.4"

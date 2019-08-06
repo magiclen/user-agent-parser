@@ -143,3 +143,31 @@ fn test_cpu() {
         assert_eq!(Some(Cow::from(*answer)), cpu.architecture);
     }
 }
+
+#[test]
+fn test_engine() {
+    let test_cases = [
+        ("Blink", None, None, None, "Mozilla/5.0 (Linux; Android 7.0; SM-G920I Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/3.4.9 SamsungBrowser/4.0 Chrome/57.0.2987.146 Mobile VR Safari/537.36"),
+        ("EdgeHTML", Some("12"), Some("0"), None, "Mozilla/5.0 (Windows NT 6.4; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.143 Safari/537.36 Edge/12.0"),
+        ("Gecko", Some("2"), Some("0b9pre"), None, "Mozilla/5.0 (X11; Linux x86_64; rv:2.0b9pre) Gecko/20110111 Firefox/4.0b9pre"),
+        ("Goanna", Some("2"), Some("2"), None, "Mozilla/5.0 (Windows NT 5.1; rv:38.9) Gecko/20100101 Goanna/2.2 Firefox/38.9 PaleMoon/26.5.0"),
+        ("KHTML", Some("4"), Some("5"), Some("4"), "Mozilla/5.0 (compatible; Konqueror/4.5; FreeBSD) KHTML/4.5.4 (like Gecko)"),
+        ("NetFront", Some("3"), Some("0"), None, "Mozilla/4.0 (PDA; Windows CE/1.0.1) NetFront/3.0"),
+        ("Presto", Some("2"), Some("8"), Some("149"), "Opera/9.80 (Windows NT 6.1; Opera Tablet/15165; U; en) Presto/2.8.149 Version/11.1"),
+        ("Tasman", Some("1"), Some("0"), None, "Mozilla/4.0 (compatible; MSIE 6.0; PPC Mac OS X 10.4.7; Tasman 1.0)"),
+        ("Trident", Some("6"), Some("0"), None, "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Win64; x64; Trident/6.0)"),
+        ("WebKit", Some("533"), Some("19"), Some("4"), "Mozilla/5.0 (Windows; U; Windows NT 6.1; sv-SE) AppleWebKit/533.19.4 (KHTML, like Gecko) Version/5.0.3 Safari/533.19.4"),
+        ("WebKit", Some("537"), Some("36"), None, "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/27.0.1453.110 Safari/537.36"),
+    ];
+
+    let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
+
+    for (answer, major, minor, patch, user_agent) in test_cases.iter() {
+        let engine = ua_parser.parse_engine(user_agent);
+
+        assert_eq!(Some(Cow::from(*answer)), engine.name);
+        assert_eq!(major.map(|s| Cow::from(s)), engine.major);
+        assert_eq!(minor.map(|s| Cow::from(s)), engine.minor);
+        assert_eq!(patch.map(|s| Cow::from(s)), engine.patch);
+    }
+}
