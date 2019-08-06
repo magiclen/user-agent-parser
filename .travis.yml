@@ -19,6 +19,18 @@ before_install:
 
 matrix:
   include:
+    - rust: nightly
+      os: linux
+      env: FEATURES="rocketly"
+      script: cargo test --features "$FEATURES"
+    - rust: nightly
+      os: osx
+      env: FEATURES="rocketly"
+      script: cargo test --features "$FEATURES"
+    - rust: nightly
+      os: windows
+      env: FEATURES="rocketly"
+      script: cargo test --features "$FEATURES"
     - rust: stable
       os: linux
       env: TARGET=x86_64-unknown-linux-musl
