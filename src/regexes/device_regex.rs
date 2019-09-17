@@ -31,18 +31,30 @@ impl DeviceRegex {
                 let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
 
                 let device_replacement = match yaml.get(&yaml_device_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let brand_replacement = match yaml.get(&yaml_brand_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let model_replacement = match yaml.get(&yaml_model_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let regex_options = if let Some(yaml) = yaml.get(&yaml_regex_flag) {
@@ -57,7 +69,15 @@ impl DeviceRegex {
                     RegexOptions::REGEX_OPTION_NONE
                 };
 
-                let regex = Regex::with_options(&yaml.get(&yaml_regex).ok_or(UserAgentParserError::IncorrectSource)?.as_str().ok_or(UserAgentParserError::IncorrectSource)?, regex_options, Syntax::default())?;
+                let regex = Regex::with_options(
+                    &yaml
+                        .get(&yaml_regex)
+                        .ok_or(UserAgentParserError::IncorrectSource)?
+                        .as_str()
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
+                    regex_options,
+                    Syntax::default(),
+                )?;
 
                 let device_regex = DeviceRegex {
                     regex,

@@ -13,7 +13,8 @@ impl EngineRegex {
     pub fn built_in_regexes() -> Vec<EngineRegex> {
         vec![
             {
-                let regex = Regex::new(r"(?i)(windows.+\sedge)/(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
+                let regex =
+                    Regex::new(r"(?i)(windows.+\sedge)/(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
 
                 EngineRegex {
                     regex,
@@ -134,7 +135,8 @@ impl EngineRegex {
                 }
             },
             {
-                let regex = Regex::new(r"(?i)(khtml)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
+                let regex =
+                    Regex::new(r"(?i)(khtml)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
 
                 EngineRegex {
                     regex,
@@ -145,7 +147,8 @@ impl EngineRegex {
                 }
             },
             {
-                let regex = Regex::new(r"(?i)(tasman)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
+                let regex =
+                    Regex::new(r"(?i)(tasman)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
 
                 EngineRegex {
                     regex,
@@ -156,7 +159,8 @@ impl EngineRegex {
                 }
             },
             {
-                let regex = Regex::new(r"(?i)(links)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
+                let regex =
+                    Regex::new(r"(?i)(links)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?").unwrap();
 
                 EngineRegex {
                     regex,
@@ -178,7 +182,9 @@ impl EngineRegex {
                 }
             },
             {
-                let regex = Regex::new(r"(?i)(rv:)(\w+)(?:\.(\w+))?(?:\.(\w+))?(?:(?=\.)\w+)*.+gecko").unwrap();
+                let regex =
+                    Regex::new(r"(?i)(rv:)(\w+)(?:\.(\w+))?(?:\.(\w+))?(?:(?=\.)\w+)*.+gecko")
+                        .unwrap();
 
                 EngineRegex {
                     regex,

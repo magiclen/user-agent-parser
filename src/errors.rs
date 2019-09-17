@@ -1,14 +1,14 @@
 use std::io::Error as IOError;
 
-use crate::yaml_rust::ScanError;
 use crate::onig::Error as RegexError;
+use crate::yaml_rust::ScanError;
 
 #[derive(Debug)]
 pub enum UserAgentParserError {
     ScanError(ScanError),
     IOError(IOError),
     RegexError(RegexError),
-    IncorrectSource
+    IncorrectSource,
 }
 
 impl From<ScanError> for UserAgentParserError {

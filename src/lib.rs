@@ -194,28 +194,29 @@ cargo test
 ```
 */
 
-extern crate yaml_rust;
 extern crate onig;
+extern crate yaml_rust;
 
 #[cfg(feature = "rocketly")]
 extern crate rocket;
 
 mod errors;
-mod regexes;
 mod models;
+mod regexes;
 
 #[cfg(feature = "rocketly")]
 mod request_guards;
 
-use std::path::Path;
-use std::fs;
 use std::borrow::Cow;
+use std::fs;
+use std::path::Path;
+use std::str::FromStr;
 
-use yaml_rust::{YamlLoader, Yaml};
 use onig::Regex;
+use yaml_rust::{Yaml, YamlLoader};
 
-use regexes::*;
 use errors::*;
+use regexes::*;
 
 pub use models::*;
 
@@ -239,6 +240,7 @@ impl UserAgentParser {
     }
 
     /// Read the list of regular expressions (YAML data) from a string to create a `UserAgentParser` instance.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str<S: AsRef<str>>(yaml: S) -> Result<UserAgentParser, UserAgentParserError> {
         let yamls = YamlLoader::load_from_str(yaml.as_ref())?;
 
@@ -249,29 +251,24 @@ impl UserAgentParser {
 
             match yaml.as_hash() {
                 Some(yaml) => {
-                    let user_agent_parsers = yaml.get(&Yaml::String("user_agent_parsers".to_string()));
+                    let user_agent_parsers =
+                        yaml.get(&Yaml::String("user_agent_parsers".to_string()));
                     let os_parsers = yaml.get(&Yaml::String("os_parsers".to_string()));
                     let device_parsers = yaml.get(&Yaml::String("device_parsers".to_string()));
 
                     let user_agent_regexes = match user_agent_parsers {
-                        Some(user_agent_parsers) => {
-                            ProductRegex::from_yaml(user_agent_parsers)?
-                        }
-                        None => Vec::new()
+                        Some(user_agent_parsers) => ProductRegex::from_yaml(user_agent_parsers)?,
+                        None => Vec::new(),
                     };
 
                     let os_regexes = match os_parsers {
-                        Some(os_parsers) => {
-                            OSRegex::from_yaml(os_parsers)?
-                        }
-                        None => Vec::new()
+                        Some(os_parsers) => OSRegex::from_yaml(os_parsers)?,
+                        None => Vec::new(),
                     };
 
                     let device_regexes = match device_parsers {
-                        Some(device_parsers) => {
-                            DeviceRegex::from_yaml(device_parsers)?
-                        }
-                        None => Vec::new()
+                        Some(device_parsers) => DeviceRegex::from_yaml(device_parsers)?,
+                        None => Vec::new(),
                     };
 
                     Ok(UserAgentParser {
@@ -283,7 +280,7 @@ impl UserAgentParser {
                         engine_regexes: EngineRegex::built_in_regexes(),
                     })
                 }
-                None => Err(UserAgentParserError::IncorrectSource)
+                None => Err(UserAgentParserError::IncorrectSource),
             }
         }
     }
@@ -293,7 +290,8 @@ macro_rules! get_string {
     ($index:expr, $replacement:expr, $replacement_regex:expr, $captures:expr) => {
         match $replacement.as_ref() {
             Some(replacement) => {
-                let replacement_captures_vec: Vec<_> = $replacement_regex.captures_iter(replacement).collect();
+                let replacement_captures_vec: Vec<_> =
+                    $replacement_regex.captures_iter(replacement).collect();
 
                 if replacement_captures_vec.is_empty() {
                     Some(Cow::from(replacement))
@@ -308,7 +306,10 @@ macro_rules! get_string {
                         let pos = replacement_captures.pos(0).unwrap();
 
                         if index < captures_len {
-                            replacement.replace_range(pos.0..pos.1, $captures.at(index).unwrap_or_default());
+                            replacement.replace_range(
+                                pos.0..pos.1,
+                                $captures.at(index).unwrap_or_default(),
+                            );
                         } else {
                             replacement.replace_range(pos.0..pos.1, "");
                         }
@@ -329,17 +330,19 @@ macro_rules! get_string {
                     }
                 }
             }
-            None => match $captures.at($index) {
-                Some(s) => {
-                    let s = s.trim();
+            None => {
+                match $captures.at($index) {
+                    Some(s) => {
+                        let s = s.trim();
 
-                    if s.is_empty() {
-                        None
-                    } else {
-                        Some(Cow::from(s))
+                        if s.is_empty() {
+                            None
+                        } else {
+                            Some(Cow::from(s))
+                        }
                     }
+                    None => None,
                 }
-                None => None
             }
         }
     };
@@ -355,21 +358,30 @@ macro_rules! get_string {
                     Some(Cow::from(s))
                 }
             }
-            None => None
+            None => None,
         }
     };
 }
 
 impl UserAgentParser {
+    #[allow(clippy::cognitive_complexity)]
     pub fn parse_product<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Product<'a> {
         let mut product = Product::default();
 
         for product_regex in self.product_regexes.iter() {
             if let Some(captures) = product_regex.regex.captures(user_agent.as_ref()) {
-                product.name = get_string!(1, product_regex.family_replacement, self.replacement_regex, captures);
-                product.major = get_string!(2, product_regex.v1_replacement, self.replacement_regex, captures);
-                product.minor = get_string!(3, product_regex.v2_replacement, self.replacement_regex, captures);
-                product.patch = get_string!(4, product_regex.v3_replacement, self.replacement_regex, captures);
+                product.name = get_string!(
+                    1,
+                    product_regex.family_replacement,
+                    self.replacement_regex,
+                    captures
+                );
+                product.major =
+                    get_string!(2, product_regex.v1_replacement, self.replacement_regex, captures);
+                product.minor =
+                    get_string!(3, product_regex.v2_replacement, self.replacement_regex, captures);
+                product.patch =
+                    get_string!(4, product_regex.v3_replacement, self.replacement_regex, captures);
 
                 break;
             }
@@ -382,16 +394,21 @@ impl UserAgentParser {
         product
     }
 
+    #[allow(clippy::cognitive_complexity)]
     pub fn parse_os<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> OS<'a> {
         let mut os = OS::default();
 
         for os_regex in self.os_regexes.iter() {
             if let Some(captures) = os_regex.regex.captures(user_agent.as_ref()) {
                 os.name = get_string!(1, os_regex.os_replacement, self.replacement_regex, captures);
-                os.major = get_string!(2, os_regex.os_v1_replacement, self.replacement_regex, captures);
-                os.minor = get_string!(3, os_regex.os_v2_replacement, self.replacement_regex, captures);
-                os.patch = get_string!(4, os_regex.os_v3_replacement, self.replacement_regex, captures);
-                os.patch_minor = get_string!(5, os_regex.os_v4_replacement, self.replacement_regex, captures);
+                os.major =
+                    get_string!(2, os_regex.os_v1_replacement, self.replacement_regex, captures);
+                os.minor =
+                    get_string!(3, os_regex.os_v2_replacement, self.replacement_regex, captures);
+                os.patch =
+                    get_string!(4, os_regex.os_v3_replacement, self.replacement_regex, captures);
+                os.patch_minor =
+                    get_string!(5, os_regex.os_v4_replacement, self.replacement_regex, captures);
 
                 break;
             }
@@ -404,14 +421,30 @@ impl UserAgentParser {
         os
     }
 
+    #[allow(clippy::cognitive_complexity)]
     pub fn parse_device<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Device<'a> {
         let mut device = Device::default();
 
         for device_regex in self.device_regexes.iter() {
             if let Some(captures) = device_regex.regex.captures(user_agent.as_ref()) {
-                device.name = get_string!(1, device_regex.device_replacement, self.replacement_regex, captures);
-                device.brand = get_string!(2, device_regex.brand_replacement, self.replacement_regex, captures);
-                device.model = get_string!(1, device_regex.model_replacement, self.replacement_regex, captures);
+                device.name = get_string!(
+                    1,
+                    device_regex.device_replacement,
+                    self.replacement_regex,
+                    captures
+                );
+                device.brand = get_string!(
+                    2,
+                    device_regex.brand_replacement,
+                    self.replacement_regex,
+                    captures
+                );
+                device.model = get_string!(
+                    1,
+                    device_regex.model_replacement,
+                    self.replacement_regex,
+                    captures
+                );
 
                 break;
             }
@@ -429,7 +462,12 @@ impl UserAgentParser {
 
         for cpu_regex in self.cpu_regexes.iter() {
             if let Some(captures) = cpu_regex.regex.captures(user_agent.as_ref()) {
-                cpu.architecture = get_string!(1, cpu_regex.architecture_replacement, self.replacement_regex, captures);
+                cpu.architecture = get_string!(
+                    1,
+                    cpu_regex.architecture_replacement,
+                    self.replacement_regex,
+                    captures
+                );
 
                 break;
             }
@@ -438,20 +476,46 @@ impl UserAgentParser {
         cpu
     }
 
+    #[allow(clippy::cognitive_complexity)]
     pub fn parse_engine<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Engine<'a> {
         let mut engine = Engine::default();
 
         for engine_regex in self.engine_regexes.iter() {
             if let Some(captures) = engine_regex.regex.captures(user_agent.as_ref()) {
-                engine.name = get_string!(1, engine_regex.name_replacement, self.replacement_regex, captures);
-                engine.major = get_string!(2, engine_regex.engine_v1_replacement, self.replacement_regex, captures);
-                engine.minor = get_string!(3, engine_regex.engine_v2_replacement, self.replacement_regex, captures);
-                engine.patch = get_string!(4, engine_regex.engine_v3_replacement, self.replacement_regex, captures);
+                engine.name =
+                    get_string!(1, engine_regex.name_replacement, self.replacement_regex, captures);
+                engine.major = get_string!(
+                    2,
+                    engine_regex.engine_v1_replacement,
+                    self.replacement_regex,
+                    captures
+                );
+                engine.minor = get_string!(
+                    3,
+                    engine_regex.engine_v2_replacement,
+                    self.replacement_regex,
+                    captures
+                );
+                engine.patch = get_string!(
+                    4,
+                    engine_regex.engine_v3_replacement,
+                    self.replacement_regex,
+                    captures
+                );
 
                 break;
             }
         }
 
         engine
+    }
+}
+
+impl FromStr for UserAgentParser {
+    type Err = UserAgentParserError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        UserAgentParser::from_str(s)
     }
 }

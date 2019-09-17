@@ -1,12 +1,12 @@
 extern crate user_agent_parser;
 extern crate yaml_rust;
 
-use std::fs;
 use std::borrow::Cow;
+use std::fs;
 
 use user_agent_parser::UserAgentParser;
 
-use yaml_rust::{YamlLoader, Yaml};
+use yaml_rust::{Yaml, YamlLoader};
 
 #[test]
 fn test_product() {
@@ -17,7 +17,13 @@ fn test_product() {
     let yamls = YamlLoader::load_from_str(&yaml).unwrap();
     let yaml = &yamls[0];
 
-    let test_cases = yaml.as_hash().unwrap().get(&Yaml::String("test_cases".to_string())).unwrap().as_vec().unwrap();
+    let test_cases = yaml
+        .as_hash()
+        .unwrap()
+        .get(&Yaml::String("test_cases".to_string()))
+        .unwrap()
+        .as_vec()
+        .unwrap();
 
     let yaml_user_agent_string = Yaml::String("user_agent_string".to_string());
     let yaml_family = Yaml::String("family".to_string());
@@ -30,10 +36,10 @@ fn test_product() {
 
         let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
 
-        let name = test_case.get(&yaml_family).unwrap().as_str().map(|s| Cow::from(s));
-        let major = test_case.get(&yaml_major).unwrap().as_str().map(|s| Cow::from(s));
-        let minor = test_case.get(&yaml_minor).unwrap().as_str().map(|s| Cow::from(s));
-        let patch = test_case.get(&yaml_patch).unwrap().as_str().map(|s| Cow::from(s));
+        let name = test_case.get(&yaml_family).unwrap().as_str().map(Cow::from);
+        let major = test_case.get(&yaml_major).unwrap().as_str().map(Cow::from);
+        let minor = test_case.get(&yaml_minor).unwrap().as_str().map(Cow::from);
+        let patch = test_case.get(&yaml_patch).unwrap().as_str().map(Cow::from);
 
         let product = ua_parser.parse_product(user_agent);
 
@@ -53,7 +59,13 @@ fn test_os() {
     let yamls = YamlLoader::load_from_str(&yaml).unwrap();
     let yaml = &yamls[0];
 
-    let test_cases = yaml.as_hash().unwrap().get(&Yaml::String("test_cases".to_string())).unwrap().as_vec().unwrap();
+    let test_cases = yaml
+        .as_hash()
+        .unwrap()
+        .get(&Yaml::String("test_cases".to_string()))
+        .unwrap()
+        .as_vec()
+        .unwrap();
 
     let yaml_user_agent_string = Yaml::String("user_agent_string".to_string());
     let yaml_family = Yaml::String("family".to_string());
@@ -67,11 +79,11 @@ fn test_os() {
 
         let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
 
-        let name = test_case.get(&yaml_family).unwrap().as_str().map(|s| Cow::from(s));
-        let major = test_case.get(&yaml_major).unwrap().as_str().map(|s| Cow::from(s));
-        let minor = test_case.get(&yaml_minor).unwrap().as_str().map(|s| Cow::from(s));
-        let patch = test_case.get(&yaml_patch).unwrap().as_str().map(|s| Cow::from(s));
-        let patch_minor = test_case.get(&yaml_patch_minor).unwrap().as_str().map(|s| Cow::from(s));
+        let name = test_case.get(&yaml_family).unwrap().as_str().map(Cow::from);
+        let major = test_case.get(&yaml_major).unwrap().as_str().map(Cow::from);
+        let minor = test_case.get(&yaml_minor).unwrap().as_str().map(Cow::from);
+        let patch = test_case.get(&yaml_patch).unwrap().as_str().map(Cow::from);
+        let patch_minor = test_case.get(&yaml_patch_minor).unwrap().as_str().map(Cow::from);
 
         let os = ua_parser.parse_os(user_agent);
 
@@ -92,7 +104,13 @@ fn test_device() {
     let yamls = YamlLoader::load_from_str(&yaml).unwrap();
     let yaml = &yamls[0];
 
-    let test_cases = yaml.as_hash().unwrap().get(&Yaml::String("test_cases".to_string())).unwrap().as_vec().unwrap();
+    let test_cases = yaml
+        .as_hash()
+        .unwrap()
+        .get(&Yaml::String("test_cases".to_string()))
+        .unwrap()
+        .as_vec()
+        .unwrap();
 
     let yaml_user_agent_string = Yaml::String("user_agent_string".to_string());
     let yaml_family = Yaml::String("family".to_string());
@@ -104,9 +122,9 @@ fn test_device() {
 
         let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
 
-        let name = test_case.get(&yaml_family).unwrap().as_str().map(|s| Cow::from(s));
-        let brand = test_case.get(&yaml_brand).unwrap().as_str().map(|s| Cow::from(s));
-        let model = test_case.get(&yaml_model).unwrap().as_str().map(|s| Cow::from(s));
+        let name = test_case.get(&yaml_family).unwrap().as_str().map(Cow::from);
+        let brand = test_case.get(&yaml_brand).unwrap().as_str().map(Cow::from);
+        let model = test_case.get(&yaml_model).unwrap().as_str().map(Cow::from);
 
         let device = ua_parser.parse_device(user_agent);
 
@@ -166,8 +184,8 @@ fn test_engine() {
         let engine = ua_parser.parse_engine(user_agent);
 
         assert_eq!(Some(Cow::from(*answer)), engine.name);
-        assert_eq!(major.map(|s| Cow::from(s)), engine.major);
-        assert_eq!(minor.map(|s| Cow::from(s)), engine.minor);
-        assert_eq!(patch.map(|s| Cow::from(s)), engine.patch);
+        assert_eq!(major.map(Cow::from), engine.major);
+        assert_eq!(minor.map(Cow::from), engine.minor);
+        assert_eq!(patch.map(Cow::from), engine.patch);
     }
 }

@@ -33,31 +33,57 @@ impl OSRegex {
             for yaml in yamls {
                 let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
 
-                let regex = Regex::new(&yaml.get(&yaml_regex).ok_or(UserAgentParserError::IncorrectSource)?.as_str().ok_or(UserAgentParserError::IncorrectSource)?)?;
+                let regex = Regex::new(
+                    &yaml
+                        .get(&yaml_regex)
+                        .ok_or(UserAgentParserError::IncorrectSource)?
+                        .as_str()
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
+                )?;
 
                 let os_replacement = match yaml.get(&yaml_os_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let os_v1_replacement = match yaml.get(&yaml_os_v1_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let os_v2_replacement = match yaml.get(&yaml_os_v2_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let os_v3_replacement = match yaml.get(&yaml_os_v3_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let os_v4_replacement = match yaml.get(&yaml_os_v4_replacement) {
-                    Some(yaml) => yaml.as_str().map(|s| Some(s.to_string())).ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None
+                    Some(yaml) => {
+                        yaml.as_str()
+                            .map(|s| Some(s.to_string()))
+                            .ok_or(UserAgentParserError::IncorrectSource)?
+                    }
+                    None => None,
                 };
 
                 let os_regex = OSRegex {
