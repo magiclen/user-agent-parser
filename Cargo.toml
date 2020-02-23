@@ -10,6 +10,7 @@ categories = ["parser-implementations"]
 description= "A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by https://github.com/faisalman/ua-parser-js and https://github.com/ua-parser/uap-core"
 readme = "README.md"
 license = "MIT"
+exclude = ["uap-core"]
 
 [badges.travis-ci]
 repository = "magiclen/user-agent-parser"
