@@ -215,9 +215,9 @@ use std::str::FromStr;
 use onig::Regex;
 use yaml_rust::{Yaml, YamlLoader};
 
-use errors::*;
 use regexes::*;
 
+pub use errors::UserAgentParserError;
 pub use models::*;
 
 #[derive(Debug)]
