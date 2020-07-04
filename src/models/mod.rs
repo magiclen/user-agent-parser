@@ -4,7 +4,7 @@ mod engine;
 mod os;
 mod product;
 
-#[cfg(feature = "rocketly")]
+#[cfg(feature = "rocket")]
 mod user_agent;
 
 pub use cpu::CPU;
@@ -13,5 +13,5 @@ pub use engine::Engine;
 pub use os::OS;
 pub use product::Product;
 
-#[cfg(feature = "rocketly")]
+#[cfg(feature = "rocket")]
 pub use user_agent::UserAgent;

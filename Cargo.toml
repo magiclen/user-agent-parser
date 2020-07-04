@@ -1,6 +1,6 @@
 [package]
 name = "user-agent-parser"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Magic Len <len@magiclen.org>"]
 edition = "2018"
 repository = "https://github.com/magiclen/user-agent-parser"
@@ -19,11 +19,11 @@ branch = "master"
 [dependencies]
 yaml-rust = "0.4"
 onig = "5"
-rocket = {version = "0.4.2", optional = true}
+rocket = { version = "0.4.2", optional = true }
 
 [features]
 rocketly = ["rocket"]
 
 [[example]]
 name = "rocket"
-required-features = ["rocketly"]
+required-features = ["rocket"]

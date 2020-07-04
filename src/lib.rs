@@ -143,12 +143,12 @@ let product = ua_parser.parse_product("Mozilla/5.0 (X11; U; Linux x86_64; en-US;
 
 ## Rocket Support
 
-This crate supports the Rocket framework. All you have to do is enabling the `rocketly` feature for this crate.
+This crate supports the Rocket framework. All you have to do is enabling the `rocket` feature for this crate.
 
 ```toml
 [dependencies.user-agent-parser]
 version = "*"
-features = ["rocketly"]
+features = ["rocket"]
 ```
 
 Let `Rocket` manage a `UserAgentParser` instance, and the `Product`, `OS`, `Device`, `CPU`, `Engine` models of this crate (plus the `UserAgent` model) can be used as *Request Guards*.
@@ -197,14 +197,14 @@ cargo test
 extern crate onig;
 extern crate yaml_rust;
 
-#[cfg(feature = "rocketly")]
+#[cfg(feature = "rocket")]
 extern crate rocket;
 
 mod errors;
 mod models;
 mod regexes;
 
-#[cfg(feature = "rocketly")]
+#[cfg(feature = "rocket")]
 mod request_guards;
 
 use std::borrow::Cow;
