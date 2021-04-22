@@ -1,7 +1,7 @@
 User Agent Parser
 ====================
 
-[![Build Status](https://travis-ci.org/magiclen/user-agent-parser.svg?branch=master)](https://travis-ci.org/magiclen/user-agent-parser)
+[![CI](https://github.com/magiclen/user-agent-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/magiclen/user-agent-parser/actions/workflows/ci.yml)
 
 A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by https://github.com/faisalman/ua-parser-js and https://github.com/ua-parser/uap-core
 
