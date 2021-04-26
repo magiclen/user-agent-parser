@@ -1,6 +1,6 @@
 [package]
 name = "user-agent-parser"
-version = "0.2.8"
+version = "0.3.0"
 authors = ["Magic Len <len@magiclen.org>"]
 edition = "2018"
 repository = "https://github.com/magiclen/user-agent-parser"
@@ -15,7 +15,7 @@ include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "examples/rocket.rs
 [dependencies]
 yaml-rust = "0.4"
 onig = "6"
-rocket = { version = "0.4.5", optional = true }
+rocket = { git = "https://github.com/SergioBenitez/Rocket", version = "0.5.0-dev", optional = true }
 
 [[example]]
 name = "rocket"

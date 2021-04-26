@@ -1,225 +1,200 @@
 use std::borrow::Cow;
 
+use crate::rocket::outcome::Outcome;
 use crate::rocket::request::{FromRequest, Outcome as OutcomeResult, Request};
-use crate::rocket::{Outcome, State};
+use crate::rocket::State;
 
 use crate::models::*;
 
 use crate::UserAgentParser;
 
-impl<'a, 'r> FromRequest<'a, 'r> for UserAgent<'a> {
-    type Error = ();
+fn from_request_user_agent<'r>(request: &'r Request<'_>) -> UserAgent<'r> {
+    let user_agent: Option<Cow<'r, str>> =
+        request.headers().get("user-agent").next().map(Cow::from);
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success({
-            let user_agent: Option<Cow<'a, str>> =
-                request.headers().get("user-agent").next().map(Cow::from);
-
-            UserAgent {
-                user_agent,
-            }
-        })
+    UserAgent {
+        user_agent,
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for &UserAgent<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for UserAgent<'r> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        let cache = request.local_cache(|| {
-            let user_agent: Option<Cow<'a, str>> =
-                request.headers().get("user-agent").next().map(Cow::from);
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        Outcome::Success(from_request_user_agent(request))
+    }
+}
 
-            UserAgent {
-                user_agent,
-            }
-            .into_owned()
-        });
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for &UserAgent<'r> {
+    type Error = ();
+
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        let cache = request.local_cache(|| from_request_user_agent(request).into_owned());
 
         Outcome::Success(cache)
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for Product<'a> {
-    type Error = ();
+async fn from_request_product<'r>(request: &'r Request<'_>) -> Product<'r> {
+    let user_agent_parser = request.guard::<State<UserAgentParser>>().await.unwrap();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success({
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    let user_agent: Option<&str> = request.headers().get("user-agent").next();
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_product(user_agent),
-                None => Product::default(),
-            }
-        })
+    match user_agent {
+        Some(user_agent) => user_agent_parser.inner().parse_product(user_agent),
+        None => Product::default(),
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for &Product<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Product<'r> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        let cache = request.local_cache(|| {
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        Outcome::Success(from_request_product(request).await)
+    }
+}
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for &Product<'r> {
+    type Error = ();
 
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_product(user_agent),
-                None => Product::default(),
-            }
-            .into_owned()
-        });
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        let cache = request
+            .local_cache_async(async { from_request_product(request).await.into_owned() })
+            .await;
 
         Outcome::Success(cache)
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for OS<'a> {
-    type Error = ();
+async fn from_request_os<'r>(request: &'r Request<'_>) -> OS<'r> {
+    let user_agent_parser = request.guard::<State<UserAgentParser>>().await.unwrap();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success({
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    let user_agent: Option<&str> = request.headers().get("user-agent").next();
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_os(user_agent),
-                None => OS::default(),
-            }
-        })
+    match user_agent {
+        Some(user_agent) => user_agent_parser.inner().parse_os(user_agent),
+        None => OS::default(),
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for &OS<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for OS<'r> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        let cache = request.local_cache(|| {
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        Outcome::Success(from_request_os(request).await)
+    }
+}
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for &OS<'r> {
+    type Error = ();
 
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_os(user_agent),
-                None => OS::default(),
-            }
-            .into_owned()
-        });
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        let cache =
+            request.local_cache_async(async { from_request_os(request).await.into_owned() }).await;
 
         Outcome::Success(cache)
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for Device<'a> {
-    type Error = ();
+async fn from_request_device<'r>(request: &'r Request<'_>) -> Device<'r> {
+    let user_agent_parser = request.guard::<State<UserAgentParser>>().await.unwrap();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success({
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    let user_agent: Option<&str> = request.headers().get("user-agent").next();
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_device(user_agent),
-                None => Device::default(),
-            }
-        })
+    match user_agent {
+        Some(user_agent) => user_agent_parser.inner().parse_device(user_agent),
+        None => Device::default(),
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for &Device<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Device<'r> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        let cache = request.local_cache(|| {
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        Outcome::Success(from_request_device(request).await)
+    }
+}
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for &Device<'r> {
+    type Error = ();
 
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_device(user_agent),
-                None => Device::default(),
-            }
-            .into_owned()
-        });
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        let cache = request
+            .local_cache_async(async { from_request_device(request).await.into_owned() })
+            .await;
 
         Outcome::Success(cache)
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for CPU<'a> {
-    type Error = ();
+async fn from_request_cpu<'r>(request: &'r Request<'_>) -> CPU<'r> {
+    let user_agent_parser = request.guard::<State<UserAgentParser>>().await.unwrap();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success({
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    let user_agent: Option<&str> = request.headers().get("user-agent").next();
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_cpu(user_agent),
-                None => CPU::default(),
-            }
-        })
+    match user_agent {
+        Some(user_agent) => user_agent_parser.inner().parse_cpu(user_agent),
+        None => CPU::default(),
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for &CPU<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for CPU<'r> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        let cache = request.local_cache(|| {
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        Outcome::Success(from_request_cpu(request).await)
+    }
+}
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for &CPU<'r> {
+    type Error = ();
 
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_cpu(user_agent),
-                None => CPU::default(),
-            }
-            .into_owned()
-        });
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        let cache =
+            request.local_cache_async(async { from_request_cpu(request).await.into_owned() }).await;
 
         Outcome::Success(cache)
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for Engine<'a> {
-    type Error = ();
+async fn from_request_engine<'r>(request: &'r Request<'_>) -> Engine<'r> {
+    let user_agent_parser = request.guard::<State<UserAgentParser>>().await.unwrap();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success({
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    let user_agent: Option<&str> = request.headers().get("user-agent").next();
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_engine(user_agent),
-                None => Engine::default(),
-            }
-        })
+    match user_agent {
+        Some(user_agent) => user_agent_parser.inner().parse_engine(user_agent),
+        None => Engine::default(),
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for &Engine<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Engine<'r> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> OutcomeResult<Self, Self::Error> {
-        let cache = request.local_cache(|| {
-            let user_agent_parser = request.guard::<State<UserAgentParser>>().unwrap();
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        Outcome::Success(from_request_engine(request).await)
+    }
+}
 
-            let user_agent: Option<&str> = request.headers().get("user-agent").next();
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for &Engine<'r> {
+    type Error = ();
 
-            match user_agent {
-                Some(user_agent) => user_agent_parser.inner().parse_engine(user_agent),
-                None => Engine::default(),
-            }
-            .into_owned()
-        });
+    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+        let cache = request
+            .local_cache_async(async { from_request_engine(request).await.into_owned() })
+            .await;
 
         Outcome::Success(cache)
     }

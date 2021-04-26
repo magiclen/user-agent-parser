@@ -1,5 +1,3 @@
-#![feature(decl_macro)]
-
 #[macro_use]
 extern crate rocket;
 
@@ -27,9 +25,9 @@ fn index(
     )
 }
 
-fn main() {
-    rocket::ignite()
+#[launch]
+fn rocket() -> _ {
+    rocket::build()
         .manage(UserAgentParser::from_path("uap-core/regexes.yaml").unwrap())
         .mount("/", routes![index])
-        .launch();
 }
