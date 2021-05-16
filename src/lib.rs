@@ -154,8 +154,6 @@ features = ["rocket"]
 Let `Rocket` manage a `UserAgentParser` instance, and the `Product`, `OS`, `Device`, `CPU`, `Engine` models of this crate (plus the `UserAgent` model) can be used as *Request Guards*.
 
 ```rust,ignore
-#![feature(proc_macro_hygiene, decl_macro)]
-
 #[macro_use]
 extern crate rocket;
 
@@ -175,11 +173,11 @@ fn index(user_agent: UserAgent, product: Product, os: OS, device: Device, cpu: C
     )
 }
 
-fn main() {
-    rocket::ignite()
+#[launch]
+fn rocket() -> _ {
+    rocket::build()
         .manage(UserAgentParser::from_path("/path/to/regexes.yaml").unwrap())
         .mount("/", routes![index])
-        .launch();
 }
 ```
 
