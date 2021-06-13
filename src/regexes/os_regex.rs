@@ -34,8 +34,7 @@ impl OSRegex {
                 let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
 
                 let regex = Regex::new(
-                    &yaml
-                        .get(&yaml_regex)
+                    yaml.get(&yaml_regex)
                         .ok_or(UserAgentParserError::IncorrectSource)?
                         .as_str()
                         .ok_or(UserAgentParserError::IncorrectSource)?,

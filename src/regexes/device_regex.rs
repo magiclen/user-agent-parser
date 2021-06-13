@@ -70,8 +70,7 @@ impl DeviceRegex {
                 };
 
                 let regex = Regex::with_options(
-                    &yaml
-                        .get(&yaml_regex)
+                    yaml.get(&yaml_regex)
                         .ok_or(UserAgentParserError::IncorrectSource)?
                         .as_str()
                         .ok_or(UserAgentParserError::IncorrectSource)?,

@@ -362,7 +362,6 @@ macro_rules! get_string {
 }
 
 impl UserAgentParser {
-    #[allow(clippy::cognitive_complexity)]
     pub fn parse_product<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Product<'a> {
         let mut product = Product::default();
 
@@ -392,7 +391,6 @@ impl UserAgentParser {
         product
     }
 
-    #[allow(clippy::cognitive_complexity)]
     pub fn parse_os<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> OS<'a> {
         let mut os = OS::default();
 
@@ -419,7 +417,6 @@ impl UserAgentParser {
         os
     }
 
-    #[allow(clippy::cognitive_complexity)]
     pub fn parse_device<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Device<'a> {
         let mut device = Device::default();
 
@@ -474,7 +471,6 @@ impl UserAgentParser {
         cpu
     }
 
-    #[allow(clippy::cognitive_complexity)]
     pub fn parse_engine<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Engine<'a> {
         let mut engine = Engine::default();
 
