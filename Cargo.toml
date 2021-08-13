@@ -15,7 +15,7 @@ include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "examples/rocket.rs
 [dependencies]
 yaml-rust = "0.4"
 onig = "6"
-rocket = { git = "https://github.com/SergioBenitez/Rocket", version = "0.5.0-dev", optional = true }
+rocket = { version = "0.5.0-rc.1", optional = true }
 
 [[example]]
 name = "rocket"
