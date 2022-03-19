@@ -2,8 +2,8 @@ use std::error::Error;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::io::Error as IOError;
 
-use crate::onig::Error as RegexError;
-use crate::yaml_rust::ScanError;
+use onig::Error as RegexError;
+use yaml_rust::ScanError;
 
 #[derive(Debug)]
 /// Possible errors of `UserAgentParser`.

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
-use crate::rocket::outcome::Outcome;
-use crate::rocket::request::{FromRequest, Outcome as OutcomeResult, Request};
+use rocket::outcome::Outcome;
+use rocket::request::{FromRequest, Outcome as OutcomeResult, Request};
 
 use crate::models::*;
 

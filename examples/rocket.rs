@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate rocket;
 
-extern crate user_agent_parser;
-
 use user_agent_parser::{Device, Engine, Product, UserAgent, UserAgentParser, CPU, OS};
 
 #[get("/")]

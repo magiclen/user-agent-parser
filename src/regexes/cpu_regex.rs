@@ -1,4 +1,4 @@
-use crate::onig::Regex;
+use onig::Regex;
 
 #[derive(Debug)]
 pub struct CPURegex {

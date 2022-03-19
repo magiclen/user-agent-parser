@@ -1,6 +1,3 @@
-extern crate user_agent_parser;
-extern crate yaml_rust;
-
 use std::borrow::Cow;
 use std::fs;
 

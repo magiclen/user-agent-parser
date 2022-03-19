@@ -1,5 +1,3 @@
-extern crate user_agent_parser;
-
 use user_agent_parser::UserAgentParser;
 
 fn main() {

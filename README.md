@@ -36,8 +36,6 @@ Then, use the `from_path` (or `from_str` if your YAML data is in-memory) associa
 
 
 ```rust
-extern crate user_agent_parser;
-
 use user_agent_parser::UserAgentParser;
 
 let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
@@ -46,8 +44,6 @@ let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
 Use the `parse_*` methods and input a user-agent string to get information.
 
 ```rust
-extern crate user_agent_parser;
-
 use user_agent_parser::UserAgentParser;
 
 let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
@@ -134,8 +130,6 @@ println!("{:#?}", engine);
 The lifetime of result instances of the `parse_*` methods depends on the user-agent string and the `UserAgentParser` instance. To make it independent, call the `into_owned` method.
 
 ```rust
-extern crate user_agent_parser;
-
 use user_agent_parser::UserAgentParser;
 
 let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
@@ -158,8 +152,6 @@ Let `Rocket` manage a `UserAgentParser` instance, and the `Product`, `OS`, `Devi
 ```rust
 #[macro_use]
 extern crate rocket;
-
-extern crate user_agent_parser;
 
 use user_agent_parser::{UserAgentParser, UserAgent, Product, OS, Device, CPU, Engine};
 
@@ -186,7 +178,12 @@ fn rocket() -> _ {
 ## Testing
 
 ```bash
-git clone --recurse-submodules git://github.com/magiclen/user-agent-parser.git
+# git clone --recurse-submodules git://github.com/magiclen/user-agent-parser.git
+
+git clone git://github.com/magiclen/user-agent-parser.git
+
+git submodule init
+git submodule update --recursive
 
 cd user-agent-parser
 
