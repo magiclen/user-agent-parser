@@ -1,6 +1,6 @@
 [package]
 name = "user-agent-parser"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Magic Len <len@magiclen.org>"]
 edition = "2021"
 repository = "https://github.com/magiclen/user-agent-parser"
