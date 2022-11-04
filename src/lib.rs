@@ -225,7 +225,7 @@ impl UserAgentParser {
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<UserAgentParser, UserAgentParserError> {
         let yaml = fs::read_to_string(path)?;
 
-        Self::from_str(&yaml)
+        Self::from_str(yaml)
     }
 
     /// Read the list of regular expressions (YAML data) from a string to create a `UserAgentParser` instance.
