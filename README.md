@@ -182,10 +182,10 @@ fn rocket() -> _ {
 
 git clone git://github.com/magiclen/user-agent-parser.git
 
+cd user-agent-parser
+
 git submodule init
 git submodule update --recursive
-
-cd user-agent-parser
 
 cargo test
 ```
