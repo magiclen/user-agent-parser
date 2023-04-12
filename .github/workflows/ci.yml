@@ -33,7 +33,7 @@ jobs:
           - ubuntu-latest
           - macos-latest
         toolchain:
-          - 1.62
+          - 1.63
           - stable
           - nightly
         features:
