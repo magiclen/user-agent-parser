@@ -2,7 +2,7 @@ use onig::Regex;
 
 #[derive(Debug)]
 pub struct CPURegex {
-    pub(crate) regex: Regex,
+    pub(crate) regex:                    Regex,
     pub(crate) architecture_replacement: Option<String>,
 }
 

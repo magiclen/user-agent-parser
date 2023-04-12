@@ -5,10 +5,10 @@ use crate::UserAgentParserError;
 
 #[derive(Debug)]
 pub struct DeviceRegex {
-    pub(crate) regex: Regex,
+    pub(crate) regex:              Regex,
     pub(crate) device_replacement: Option<String>,
-    pub(crate) brand_replacement: Option<String>,
-    pub(crate) model_replacement: Option<String>,
+    pub(crate) brand_replacement:  Option<String>,
+    pub(crate) model_replacement:  Option<String>,
 }
 
 impl DeviceRegex {
@@ -32,29 +32,26 @@ impl DeviceRegex {
                 let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
 
                 let device_replacement = match yaml.get(&yaml_device_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 
                 let brand_replacement = match yaml.get(&yaml_brand_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 
                 let model_replacement = match yaml.get(&yaml_model_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 

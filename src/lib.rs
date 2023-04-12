@@ -196,27 +196,22 @@ mod regexes;
 #[cfg(feature = "rocket")]
 mod request_guards;
 
-use std::borrow::Cow;
-use std::fs;
-use std::path::Path;
-use std::str::FromStr;
-
-use onig::Regex;
-use yaml_rust::{Yaml, YamlLoader};
-
-use regexes::*;
+use std::{borrow::Cow, fs, path::Path, str::FromStr};
 
 pub use errors::UserAgentParserError;
 pub use models::*;
+use onig::Regex;
+use regexes::*;
+use yaml_rust::{Yaml, YamlLoader};
 
 #[derive(Debug)]
 pub struct UserAgentParser {
     replacement_regex: Regex,
-    product_regexes: Vec<ProductRegex>,
-    os_regexes: Vec<OSRegex>,
-    device_regexes: Vec<DeviceRegex>,
-    cpu_regexes: Vec<CPURegex>,
-    engine_regexes: Vec<EngineRegex>,
+    product_regexes:   Vec<ProductRegex>,
+    os_regexes:        Vec<OSRegex>,
+    device_regexes:    Vec<DeviceRegex>,
+    cpu_regexes:       Vec<CPURegex>,
+    engine_regexes:    Vec<EngineRegex>,
 }
 
 impl UserAgentParser {
@@ -268,7 +263,7 @@ impl UserAgentParser {
                         cpu_regexes: CPURegex::built_in_regexes(),
                         engine_regexes: EngineRegex::built_in_regexes(),
                     })
-                }
+                },
                 None => Err(UserAgentParserError::IncorrectSource),
             }
         }
@@ -318,21 +313,19 @@ macro_rules! get_string {
                         Some(Cow::from(replacement))
                     }
                 }
-            }
-            None => {
-                match $captures.at($index) {
-                    Some(s) => {
-                        let s = s.trim();
+            },
+            None => match $captures.at($index) {
+                Some(s) => {
+                    let s = s.trim();
 
-                        if s.is_empty() {
-                            None
-                        } else {
-                            Some(Cow::from(s))
-                        }
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(Cow::from(s))
                     }
-                    None => None,
-                }
-            }
+                },
+                None => None,
+            },
         }
     };
 
@@ -346,7 +339,7 @@ macro_rules! get_string {
                 } else {
                     Some(Cow::from(s))
                 }
-            }
+            },
             None => None,
         }
     };

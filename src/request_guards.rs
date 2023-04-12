@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use rocket::outcome::Outcome;
-use rocket::request::{FromRequest, Outcome as OutcomeResult, Request};
+use rocket::{
+    outcome::Outcome,
+    request::{FromRequest, Outcome as OutcomeResult, Request},
+};
 
-use crate::models::*;
-
-use crate::UserAgentParser;
+use crate::{models::*, UserAgentParser};
 
 fn from_request_user_agent<'r>(request: &'r Request<'_>) -> UserAgent<'r> {
     let user_agent: Option<Cow<'r, str>> =

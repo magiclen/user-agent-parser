@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 #[derive(Debug, Clone, Default)]
 pub struct OS<'a> {
-    pub name: Option<Cow<'a, str>>,
-    pub major: Option<Cow<'a, str>>,
-    pub minor: Option<Cow<'a, str>>,
-    pub patch: Option<Cow<'a, str>>,
+    pub name:        Option<Cow<'a, str>>,
+    pub major:       Option<Cow<'a, str>>,
+    pub minor:       Option<Cow<'a, str>>,
+    pub patch:       Option<Cow<'a, str>>,
     pub patch_minor: Option<Cow<'a, str>>,
 }
 

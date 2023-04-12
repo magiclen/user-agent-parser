@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 #[derive(Debug, Clone, Default)]
 pub struct Device<'a> {
-    pub name: Option<Cow<'a, str>>,
+    pub name:  Option<Cow<'a, str>>,
     pub brand: Option<Cow<'a, str>>,
     pub model: Option<Cow<'a, str>>,
 }

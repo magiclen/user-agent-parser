@@ -5,11 +5,11 @@ use crate::UserAgentParserError;
 
 #[derive(Debug)]
 pub struct ProductRegex {
-    pub(crate) regex: Regex,
+    pub(crate) regex:              Regex,
     pub(crate) family_replacement: Option<String>,
-    pub(crate) v1_replacement: Option<String>,
-    pub(crate) v2_replacement: Option<String>,
-    pub(crate) v3_replacement: Option<String>,
+    pub(crate) v1_replacement:     Option<String>,
+    pub(crate) v2_replacement:     Option<String>,
+    pub(crate) v3_replacement:     Option<String>,
 }
 
 impl ProductRegex {
@@ -40,38 +40,34 @@ impl ProductRegex {
                 )?;
 
                 let family_replacement = match yaml.get(&yaml_family_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 
                 let v1_replacement = match yaml.get(&yaml_v1_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 
                 let v2_replacement = match yaml.get(&yaml_v2_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 
                 let v3_replacement = match yaml.get(&yaml_v3_replacement) {
-                    Some(yaml) => {
-                        yaml.as_str()
-                            .map(|s| Some(s.to_string()))
-                            .ok_or(UserAgentParserError::IncorrectSource)?
-                    }
+                    Some(yaml) => yaml
+                        .as_str()
+                        .map(|s| Some(s.to_string()))
+                        .ok_or(UserAgentParserError::IncorrectSource)?,
                     None => None,
                 };
 

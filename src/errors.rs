@@ -1,6 +1,8 @@
-use std::error::Error;
-use std::fmt::{Display, Error as FmtError, Formatter};
-use std::io::Error as IOError;
+use std::{
+    error::Error,
+    fmt::{Display, Error as FmtError, Formatter},
+    io::Error as IOError,
+};
 
 use onig::Error as RegexError;
 use yaml_rust::ScanError;
@@ -23,7 +25,7 @@ impl Display for UserAgentParserError {
             UserAgentParserError::RegexError(err) => Display::fmt(&err, f),
             UserAgentParserError::IncorrectSource => {
                 f.write_str("The source of regular expressions is incorrect.")
-            }
+            },
         }
     }
 }

@@ -2,8 +2,8 @@ use onig::Regex;
 
 #[derive(Debug)]
 pub struct EngineRegex {
-    pub(crate) regex: Regex,
-    pub(crate) name_replacement: Option<String>,
+    pub(crate) regex:                 Regex,
+    pub(crate) name_replacement:      Option<String>,
     pub(crate) engine_v1_replacement: Option<String>,
     pub(crate) engine_v2_replacement: Option<String>,
     pub(crate) engine_v3_replacement: Option<String>,
