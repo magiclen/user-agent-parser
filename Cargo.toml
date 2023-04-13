@@ -9,7 +9,6 @@ homepage = "https://magiclen.org/user-agent-parser"
 keywords = ["useragent", "user-agent", "uap", "rocket", "uap-core"]
 categories = ["parser-implementations"]
 description = "A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by https://github.com/faisalman/ua-parser-js and https://github.com/ua-parser/uap-core"
-readme = "README.md"
 license = "MIT"
 include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "examples/rocket.rs"]
 
