@@ -58,7 +58,7 @@ jobs:
           - ubuntu-latest
           - macos-latest
         toolchain:
-          - 1.67
+          - 1.69
         features:
           -
           - --features rocket

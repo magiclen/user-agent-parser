@@ -1,9 +1,9 @@
 [package]
 name = "user-agent-parser"
-version = "0.3.5"
+version = "0.3.6"
 authors = ["Magic Len <len@magiclen.org>"]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.69"
 repository = "https://github.com/magiclen/user-agent-parser"
 homepage = "https://magiclen.org/user-agent-parser"
 keywords = ["useragent", "user-agent", "uap", "rocket", "uap-core"]
@@ -15,7 +15,7 @@ include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "examples/rocket.rs
 [dependencies]
 yaml-rust = "0.4"
 onig = { version = "6", default-features = false }
-rocket = { version = "0.5.0-rc.3", optional = true }
+rocket = { version = "0.5.0-rc.4", optional = true }
 
 [[example]]
 name = "rocket"
