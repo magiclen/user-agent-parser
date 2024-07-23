@@ -5,7 +5,7 @@ use std::{
 };
 
 use onig::Error as RegexError;
-use yaml_rust::ScanError;
+use yaml_rust2::ScanError;
 
 #[derive(Debug)]
 /// Possible errors of `UserAgentParser`.

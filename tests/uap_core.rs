@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fs};
 
 use user_agent_parser::UserAgentParser;
-use yaml_rust::{Yaml, YamlLoader};
+use yaml_rust2::{Yaml, YamlLoader};
 
 #[test]
 fn test_product() {

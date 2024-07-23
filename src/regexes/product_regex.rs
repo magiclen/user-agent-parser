@@ -1,5 +1,5 @@
 use onig::Regex;
-use yaml_rust::Yaml;
+use yaml_rust2::Yaml;
 
 use crate::UserAgentParserError;
 

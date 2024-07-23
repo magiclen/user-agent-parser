@@ -13,9 +13,9 @@ license = "MIT"
 include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "examples/rocket.rs"]
 
 [dependencies]
-yaml-rust = "0.4"
 onig = { version = "6", default-features = false }
 rocket = { version = "0.5.0-rc.4", optional = true }
+yaml-rust2 = "0.8"
 
 [[example]]
 name = "rocket"
