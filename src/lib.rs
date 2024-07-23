@@ -202,7 +202,7 @@ pub use errors::UserAgentParserError;
 pub use models::*;
 use onig::Regex;
 use regexes::*;
-use yaml_rust::{Yaml, YamlLoader};
+use yaml_rust2::{Yaml, YamlLoader};
 
 #[derive(Debug)]
 pub struct UserAgentParser {
