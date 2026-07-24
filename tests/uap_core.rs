@@ -163,6 +163,12 @@ fn test_cpu() {
             "sparc",
             "Mozilla/5.0 (X11; U; SunOS sun4u; en-US; rv:1.9b5) Gecko/2008032620 Firefox/3.0b5",
         ),
+        (
+            "arm64",
+            "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) \
+             Chrome/100.0.0.0 Safari/537.36",
+        ),
+        ("armhf", "Mozilla/5.0 (X11; Linux armv7hl; rv:100.0) Gecko/20100101 Firefox/100.0"),
     ];
 
     let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
@@ -260,6 +266,21 @@ fn test_engine() {
             "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML like Gecko) \
              Chrome/27.0.1453.110 Safari/537.36",
         ),
+        (
+            "Servo",
+            Some("1"),
+            Some("0"),
+            None,
+            "Mozilla/5.0 (X11; Linux x86_64; rv:1.0) Servo/1.0 Firefox/108.0",
+        ),
+        (
+            "LibWeb",
+            None,
+            None,
+            None,
+            "Mozilla/5.0 (SerenityOS; x86_64) LibWeb+LibJS/1.0 Browser/1.0",
+        ),
+        ("ArkWeb", Some("2"), Some("0"), Some("1"), "Mozilla/5.0 (Linux; ArkWeb/2.0.1) like Gecko"),
     ];
 
     let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();

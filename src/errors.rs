@@ -4,7 +4,7 @@ use std::{
     io::Error as IOError,
 };
 
-use onig::Error as RegexError;
+use regex::Error as RegexError;
 use yaml_rust::ScanError;
 
 #[derive(Debug)]

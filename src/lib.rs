@@ -173,6 +173,47 @@ fn rocket() -> _ {
 }
 ```
 
+## Axum Support
+
+This crate also supports the Axum framework. All you have to do is enabling the `axum` feature for this crate.
+
+```toml
+[dependencies.user-agent-parser]
+version = "*"
+features = ["axum"]
+```
+
+Share a `UserAgentParser` instance through an `Extension<Arc<UserAgentParser>>` layer, and the owned models `Product<'static>`, `OS<'static>`, `Device<'static>`, `CPU<'static>`, `Engine<'static>` (plus the `UserAgent<'static>` model) can be used as *extractors*.
+
+```rust,ignore
+use std::sync::Arc;
+
+use axum::{routing::get, Extension, Router};
+use user_agent_parser::{UserAgentParser, UserAgent, Product, OS, Device, CPU, Engine};
+
+async fn index(
+    user_agent: UserAgent<'static>,
+    product: Product<'static>,
+    os: OS<'static>,
+    device: Device<'static>,
+    cpu: CPU<'static>,
+    engine: Engine<'static>,
+) -> String {
+    format!("{user_agent:#?}\n{product:#?}\n{os:#?}\n{device:#?}\n{cpu:#?}\n{engine:#?}")
+}
+
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/", get(index))
+        .layer(Extension(Arc::new(UserAgentParser::from_path("/path/to/regexes.yaml").unwrap())));
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
+}
+```
+
 ## Testing
 
 ```bash
@@ -198,11 +239,14 @@ mod regexes;
 #[cfg(feature = "rocket")]
 mod request_guards;
 
+#[cfg(feature = "axum")]
+mod request_guards_axum;
+
 use std::{borrow::Cow, fs, path::Path, str::FromStr};
 
 pub use errors::UserAgentParserError;
 pub use models::*;
-use onig::Regex;
+use regex::Regex;
 use regexes::*;
 use yaml_rust::{Yaml, YamlLoader};
 
@@ -287,17 +331,17 @@ macro_rules! get_string {
                     let captures_len = $captures.len();
 
                     for replacement_captures in replacement_captures_vec.into_iter().rev() {
-                        let index = replacement_captures.at(1).unwrap().parse::<usize>().unwrap();
+                        let index = replacement_captures[1].parse::<usize>().unwrap();
 
-                        let pos = replacement_captures.pos(0).unwrap();
+                        let whole = replacement_captures.get(0).unwrap();
 
                         if index < captures_len {
                             replacement.replace_range(
-                                pos.0..pos.1,
-                                $captures.at(index).unwrap_or_default(),
+                                whole.start()..whole.end(),
+                                $captures.get(index).map_or("", |m| m.as_str()),
                             );
                         } else {
-                            replacement.replace_range(pos.0..pos.1, "");
+                            replacement.replace_range(whole.start()..whole.end(), "");
                         }
                     }
 
@@ -309,22 +353,14 @@ macro_rules! get_string {
                         replacement.truncate(replacement.trim_end().len());
                     }
 
-                    if replacement.is_empty() {
-                        None
-                    } else {
-                        Some(Cow::from(replacement))
-                    }
+                    if replacement.is_empty() { None } else { Some(Cow::from(replacement)) }
                 }
             },
-            None => match $captures.at($index) {
+            None => match $captures.get($index).map(|m| m.as_str()) {
                 Some(s) => {
                     let s = s.trim();
 
-                    if s.is_empty() {
-                        None
-                    } else {
-                        Some(Cow::from(s))
-                    }
+                    if s.is_empty() { None } else { Some(Cow::from(s)) }
                 },
                 None => None,
             },
@@ -332,15 +368,11 @@ macro_rules! get_string {
     };
 
     ($index:expr, $captures:expr) => {
-        match $captures.at($index) {
+        match $captures.get($index).map(|m| m.as_str()) {
             Some(s) => {
                 let s = s.trim();
 
-                if s.is_empty() {
-                    None
-                } else {
-                    Some(Cow::from(s))
-                }
+                if s.is_empty() { None } else { Some(Cow::from(s)) }
             },
             None => None,
         }
@@ -414,12 +446,12 @@ impl UserAgentParser {
                     self.replacement_regex,
                     captures
                 );
-                device.brand = get_string!(
-                    2,
-                    device_regex.brand_replacement,
-                    self.replacement_regex,
-                    captures
-                );
+                // uap-core gives the brand no positional default; it is only set when a `brand_replacement` exists.
+                device.brand = if device_regex.brand_replacement.is_some() {
+                    get_string!(2, device_regex.brand_replacement, self.replacement_regex, captures)
+                } else {
+                    None
+                };
                 device.model = get_string!(
                     1,
                     device_regex.model_replacement,

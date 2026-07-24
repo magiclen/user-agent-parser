@@ -1,0 +1,59 @@
+use std::{borrow::Cow, convert::Infallible, sync::Arc};
+
+use axum::{
+    extract::FromRequestParts,
+    http::{header::USER_AGENT, request::Parts},
+};
+
+use crate::{UserAgentParser, models::*};
+
+// axum extractors return owned values, so every model is produced as `T<'static>`.
+// The parser must be shared through an `Extension<Arc<UserAgentParser>>` layer.
+
+#[inline]
+fn user_agent_str(parts: &Parts) -> Option<&str> {
+    parts.headers.get(USER_AGENT).and_then(|value| value.to_str().ok())
+}
+
+#[inline]
+fn parser(parts: &Parts) -> Option<&Arc<UserAgentParser>> {
+    parts.extensions.get::<Arc<UserAgentParser>>()
+}
+
+impl<S: Send + Sync> FromRequestParts<S> for UserAgent<'static> {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let user_agent = user_agent_str(parts).map(|ua| Cow::from(ua.to_string()));
+
+        Ok(UserAgent {
+            user_agent,
+        })
+    }
+}
+
+macro_rules! impl_from_request_parts {
+    ($model:ident, $parse:ident) => {
+        impl<S: Send + Sync> FromRequestParts<S> for $model<'static> {
+            type Rejection = Infallible;
+
+            async fn from_request_parts(
+                parts: &mut Parts,
+                _state: &S,
+            ) -> Result<Self, Self::Rejection> {
+                let result = match (parser(parts), user_agent_str(parts)) {
+                    (Some(parser), Some(user_agent)) => parser.$parse(user_agent).into_owned(),
+                    _ => $model::default(),
+                };
+
+                Ok(result)
+            }
+        }
+    };
+}
+
+impl_from_request_parts!(Product, parse_product);
+impl_from_request_parts!(OS, parse_os);
+impl_from_request_parts!(Device, parse_device);
+impl_from_request_parts!(CPU, parse_cpu);
+impl_from_request_parts!(Engine, parse_engine);

@@ -5,7 +5,7 @@ use rocket::{
     request::{FromRequest, Outcome as OutcomeResult, Request},
 };
 
-use crate::{models::*, UserAgentParser};
+use crate::{UserAgentParser, models::*};
 
 fn from_request_user_agent<'r>(request: &'r Request<'_>) -> UserAgent<'r> {
     let user_agent: Option<Cow<'r, str>> =

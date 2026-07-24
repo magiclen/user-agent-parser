@@ -4,7 +4,7 @@ mod engine;
 mod os;
 mod product;
 
-#[cfg(feature = "rocket")]
+#[cfg(any(feature = "rocket", feature = "axum"))]
 mod user_agent;
 
 pub use cpu::CPU;
@@ -12,5 +12,5 @@ pub use device::Device;
 pub use engine::Engine;
 pub use os::OS;
 pub use product::Product;
-#[cfg(feature = "rocket")]
+#[cfg(any(feature = "rocket", feature = "axum"))]
 pub use user_agent::UserAgent;

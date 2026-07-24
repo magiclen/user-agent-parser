@@ -38,6 +38,7 @@ jobs:
         features:
           -
           - --features rocket
+          - --features axum
     name: Test ${{ matrix.toolchain }} on ${{ matrix.os }} (${{ matrix.features }})
     runs-on: ${{ matrix.os }}
     steps:
@@ -58,10 +59,11 @@ jobs:
           - ubuntu-latest
           - macos-latest
         toolchain:
-          - 1.69
+          - 1.88
         features:
           -
           - --features rocket
+          - --features axum
     name: Test ${{ matrix.toolchain }} on ${{ matrix.os }} (${{ matrix.features }})
     runs-on: ${{ matrix.os }}
     steps:

@@ -175,6 +175,47 @@ fn rocket() -> _ {
 }
 ```
 
+## Axum Support
+
+This crate also supports the Axum framework. All you have to do is enabling the `axum` feature for this crate.
+
+```toml
+[dependencies.user-agent-parser]
+version = "*"
+features = ["axum"]
+```
+
+Share a `UserAgentParser` instance through an `Extension<Arc<UserAgentParser>>` layer, and the owned models `Product<'static>`, `OS<'static>`, `Device<'static>`, `CPU<'static>`, `Engine<'static>` (plus the `UserAgent<'static>` model) can be used as *extractors*.
+
+```rust
+use std::sync::Arc;
+
+use axum::{routing::get, Extension, Router};
+use user_agent_parser::{UserAgentParser, UserAgent, Product, OS, Device, CPU, Engine};
+
+async fn index(
+    user_agent: UserAgent<'static>,
+    product: Product<'static>,
+    os: OS<'static>,
+    device: Device<'static>,
+    cpu: CPU<'static>,
+    engine: Engine<'static>,
+) -> String {
+    format!("{user_agent:#?}\n{product:#?}\n{os:#?}\n{device:#?}\n{cpu:#?}\n{engine:#?}")
+}
+
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/", get(index))
+        .layer(Extension(Arc::new(UserAgentParser::from_path("/path/to/regexes.yaml").unwrap())));
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
+}
+```
+
 ## Testing
 
 ```bash

@@ -1,4 +1,4 @@
-use onig::Regex;
+use regex::Regex;
 use yaml_rust::Yaml;
 
 use crate::UserAgentParserError;

@@ -1,4 +1,4 @@
-use onig::{Regex, RegexOptions, Syntax};
+use regex::{Regex, RegexBuilder};
 use yaml_rust::Yaml;
 
 use crate::UserAgentParserError;
@@ -55,26 +55,21 @@ impl DeviceRegex {
                     None => None,
                 };
 
-                let regex_options = if let Some(yaml) = yaml.get(&yaml_regex_flag) {
-                    let regex_flag = yaml.as_str().ok_or(UserAgentParserError::IncorrectSource)?;
-
-                    if regex_flag == "i" {
-                        RegexOptions::REGEX_OPTION_IGNORECASE
-                    } else {
-                        RegexOptions::REGEX_OPTION_NONE
-                    }
-                } else {
-                    RegexOptions::REGEX_OPTION_NONE
+                let case_insensitive = match yaml.get(&yaml_regex_flag) {
+                    Some(yaml) => {
+                        yaml.as_str().ok_or(UserAgentParserError::IncorrectSource)? == "i"
+                    },
+                    None => false,
                 };
 
-                let regex = Regex::with_options(
+                let regex = RegexBuilder::new(
                     yaml.get(&yaml_regex)
                         .ok_or(UserAgentParserError::IncorrectSource)?
                         .as_str()
                         .ok_or(UserAgentParserError::IncorrectSource)?,
-                    regex_options,
-                    Syntax::default(),
-                )?;
+                )
+                .case_insensitive(case_insensitive)
+                .build()?;
 
                 let device_regex = DeviceRegex {
                     regex,
