@@ -2,13 +2,20 @@ use std::borrow::Cow;
 
 use regex::Captures;
 
+/// The captured text is not known until a match happens, so each group gets a small fixed guess.
+const CAPTURE_LENGTH_GUESS: usize = 8;
+
 /// A replacement string whose `$1` .. `$9` placeholders are parsed once, when the parser is built.
 #[derive(Debug)]
 pub(crate) enum Replacement {
     /// No placeholder at all, so the text can be used as is.
     Literal(Cow<'static, str>),
     /// A mix of literal text and capture group indexes.
-    Template(Vec<Segment>),
+    Template {
+        segments: Vec<Segment>,
+        /// A guess at the length of the result, so that the string is allocated once instead of growing.
+        capacity: usize,
+    },
 }
 
 #[derive(Debug)]
@@ -22,7 +29,20 @@ impl Replacement {
         let text = text.into();
 
         match Self::parse(text.as_ref()) {
-            Some(segments) => Replacement::Template(segments),
+            Some(segments) => {
+                let capacity = segments
+                    .iter()
+                    .map(|segment| match segment {
+                        Segment::Literal(text) => text.len(),
+                        Segment::Capture(_) => CAPTURE_LENGTH_GUESS,
+                    })
+                    .sum();
+
+                Replacement::Template {
+                    segments,
+                    capacity,
+                }
+            },
             // uap-core asks for the result to be trimmed, and a literal can be trimmed once here instead of on every match.
             None => Replacement::Literal(match text {
                 Cow::Borrowed(text) => Cow::Borrowed(text.trim()),
@@ -74,13 +94,16 @@ impl Replacement {
         match self {
             Replacement::Literal(text) if text.is_empty() => None,
             Replacement::Literal(text) => Some(Cow::from(text.as_ref())),
-            Replacement::Template(segments) => {
+            Replacement::Template {
+                segments,
+                capacity,
+            } => {
                 // A lone `$1` is by far the most common template, and it needs no allocation at all.
                 if let [Segment::Capture(index)] = segments.as_slice() {
                     return capture_str(*index, captures).map(Cow::from);
                 }
 
-                let mut result = String::new();
+                let mut result = String::with_capacity(*capacity);
 
                 for segment in segments {
                     match segment {

@@ -3,7 +3,7 @@ use yaml_rust::Yaml;
 
 use crate::{
     UserAgentParserError,
-    regexes::{Replacement, build_regex, optional_replacement},
+    regexes::{Replacement, from_yaml_section, optional_replacement},
 };
 
 #[derive(Debug)]
@@ -17,38 +17,19 @@ pub(crate) struct ProductRegex {
 
 impl ProductRegex {
     pub(crate) fn from_yaml(yaml: &Yaml) -> Result<Vec<ProductRegex>, UserAgentParserError> {
-        let yamls = yaml.as_vec().ok_or(UserAgentParserError::IncorrectSource)?;
-
-        let mut user_agent_regexes = Vec::with_capacity(yamls.len());
-
-        let yaml_regex = Yaml::String("regex".to_string());
         let yaml_family_replacement = Yaml::String("family_replacement".to_string());
         let yaml_v1_replacement = Yaml::String("v1_replacement".to_string());
         let yaml_v2_replacement = Yaml::String("v2_replacement".to_string());
         let yaml_v3_replacement = Yaml::String("v3_replacement".to_string());
 
-        for yaml in yamls {
-            let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
-
-            let regex = build_regex(
-                yaml.get(&yaml_regex)
-                    .ok_or(UserAgentParserError::IncorrectSource)?
-                    .as_str()
-                    .ok_or(UserAgentParserError::IncorrectSource)?,
-                false,
-            )?;
-
-            let user_agent_regex = ProductRegex {
+        from_yaml_section(yaml, |regex, yaml| {
+            Ok(ProductRegex {
                 regex,
                 family_replacement: optional_replacement(yaml, &yaml_family_replacement)?,
                 v1_replacement: optional_replacement(yaml, &yaml_v1_replacement)?,
                 v2_replacement: optional_replacement(yaml, &yaml_v2_replacement)?,
                 v3_replacement: optional_replacement(yaml, &yaml_v3_replacement)?,
-            };
-
-            user_agent_regexes.push(user_agent_regex);
-        }
-
-        Ok(user_agent_regexes)
+            })
+        })
     }
 }

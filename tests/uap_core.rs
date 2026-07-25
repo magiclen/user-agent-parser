@@ -1,18 +1,33 @@
-use std::{borrow::Cow, fs};
+use std::{borrow::Cow, fs, sync::LazyLock};
 
 use user_agent_parser::UserAgentParser;
-use yaml_rust::{Yaml, YamlLoader};
+use yaml_rust::{Yaml, YamlLoader, yaml::Hash};
 
-#[test]
-fn test_product() {
-    let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
+// Building a parser compiles more than a thousand regexes, so every test shares the same one.
+static UA_PARSER: LazyLock<UserAgentParser> =
+    LazyLock::new(|| UserAgentParser::from_path("uap-core/regexes.yaml").unwrap());
 
-    let yaml = fs::read_to_string("uap-core/tests/test_ua.yaml").unwrap();
+// The same files uap-core runs its own test suite against, see `uap-core/tests/test.js`.
+const PRODUCT_TEST_FILES: [&str; 5] = [
+    "uap-core/tests/test_ua.yaml",
+    "uap-core/test_resources/firefox_user_agent_strings.yaml",
+    "uap-core/test_resources/pgts_browser_list.yaml",
+    "uap-core/test_resources/opera_mini_user_agent_strings.yaml",
+    "uap-core/test_resources/podcasting_user_agent_strings.yaml",
+];
+
+const OS_TEST_FILES: [&str; 2] =
+    ["uap-core/tests/test_os.yaml", "uap-core/test_resources/additional_os_tests.yaml"];
+
+const DEVICE_TEST_FILES: [&str; 1] = ["uap-core/tests/test_device.yaml"];
+
+/// Reads the `test_cases` list of one uap-core test file and hands every case to `f`.
+fn for_each_test_case(path: &str, mut f: impl FnMut(&Hash)) {
+    let yaml = fs::read_to_string(path).unwrap();
 
     let yamls = YamlLoader::load_from_str(&yaml).unwrap();
-    let yaml = &yamls[0];
 
-    let test_cases = yaml
+    let test_cases = yamls[0]
         .as_hash()
         .unwrap()
         .get(&Yaml::String("test_cases".to_string()))
@@ -20,48 +35,45 @@ fn test_product() {
         .as_vec()
         .unwrap();
 
+    for test_case in test_cases {
+        f(test_case.as_hash().unwrap());
+    }
+}
+
+/// Reads one expected field of a test case, which may be missing entirely or be present without a value.
+fn field<'a>(test_case: &'a Hash, key: &Yaml) -> Option<Cow<'a, str>> {
+    test_case.get(key)?.as_str().map(Cow::from)
+}
+
+#[test]
+fn test_product() {
     let yaml_user_agent_string = Yaml::String("user_agent_string".to_string());
     let yaml_family = Yaml::String("family".to_string());
     let yaml_major = Yaml::String("major".to_string());
     let yaml_minor = Yaml::String("minor".to_string());
     let yaml_patch = Yaml::String("patch".to_string());
 
-    for test_case in test_cases {
-        let test_case = test_case.as_hash().unwrap();
+    for path in PRODUCT_TEST_FILES {
+        for_each_test_case(path, |test_case| {
+            let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
 
-        let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
+            let name = field(test_case, &yaml_family);
+            let major = field(test_case, &yaml_major);
+            let minor = field(test_case, &yaml_minor);
+            let patch = field(test_case, &yaml_patch);
 
-        let name = test_case.get(&yaml_family).unwrap().as_str().map(Cow::from);
-        let major = test_case.get(&yaml_major).unwrap().as_str().map(Cow::from);
-        let minor = test_case.get(&yaml_minor).unwrap().as_str().map(Cow::from);
-        let patch = test_case.get(&yaml_patch).unwrap().as_str().map(Cow::from);
+            let product = UA_PARSER.parse_product(user_agent);
 
-        let product = ua_parser.parse_product(user_agent);
-
-        assert_eq!(name, product.name);
-        assert_eq!(major, product.major);
-        assert_eq!(minor, product.minor);
-        assert_eq!(patch, product.patch);
+            assert_eq!(name, product.name, "{path}: {user_agent}");
+            assert_eq!(major, product.major, "{path}: {user_agent}");
+            assert_eq!(minor, product.minor, "{path}: {user_agent}");
+            assert_eq!(patch, product.patch, "{path}: {user_agent}");
+        });
     }
 }
 
 #[test]
 fn test_os() {
-    let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
-
-    let yaml = fs::read_to_string("uap-core/tests/test_os.yaml").unwrap();
-
-    let yamls = YamlLoader::load_from_str(&yaml).unwrap();
-    let yaml = &yamls[0];
-
-    let test_cases = yaml
-        .as_hash()
-        .unwrap()
-        .get(&Yaml::String("test_cases".to_string()))
-        .unwrap()
-        .as_vec()
-        .unwrap();
-
     let yaml_user_agent_string = Yaml::String("user_agent_string".to_string());
     let yaml_family = Yaml::String("family".to_string());
     let yaml_major = Yaml::String("major".to_string());
@@ -69,63 +81,48 @@ fn test_os() {
     let yaml_patch = Yaml::String("patch".to_string());
     let yaml_patch_minor = Yaml::String("patch_minor".to_string());
 
-    for test_case in test_cases {
-        let test_case = test_case.as_hash().unwrap();
+    for path in OS_TEST_FILES {
+        for_each_test_case(path, |test_case| {
+            let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
 
-        let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
+            let name = field(test_case, &yaml_family);
+            let major = field(test_case, &yaml_major);
+            let minor = field(test_case, &yaml_minor);
+            let patch = field(test_case, &yaml_patch);
+            let patch_minor = field(test_case, &yaml_patch_minor);
 
-        let name = test_case.get(&yaml_family).unwrap().as_str().map(Cow::from);
-        let major = test_case.get(&yaml_major).unwrap().as_str().map(Cow::from);
-        let minor = test_case.get(&yaml_minor).unwrap().as_str().map(Cow::from);
-        let patch = test_case.get(&yaml_patch).unwrap().as_str().map(Cow::from);
-        let patch_minor = test_case.get(&yaml_patch_minor).unwrap().as_str().map(Cow::from);
+            let os = UA_PARSER.parse_os(user_agent);
 
-        let os = ua_parser.parse_os(user_agent);
-
-        assert_eq!(name, os.name);
-        assert_eq!(major, os.major);
-        assert_eq!(minor, os.minor);
-        assert_eq!(patch, os.patch);
-        assert_eq!(patch_minor, os.patch_minor);
+            assert_eq!(name, os.name, "{path}: {user_agent}");
+            assert_eq!(major, os.major, "{path}: {user_agent}");
+            assert_eq!(minor, os.minor, "{path}: {user_agent}");
+            assert_eq!(patch, os.patch, "{path}: {user_agent}");
+            assert_eq!(patch_minor, os.patch_minor, "{path}: {user_agent}");
+        });
     }
 }
 
 #[test]
 fn test_device() {
-    let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
-
-    let yaml = fs::read_to_string("uap-core/tests/test_device.yaml").unwrap();
-
-    let yamls = YamlLoader::load_from_str(&yaml).unwrap();
-    let yaml = &yamls[0];
-
-    let test_cases = yaml
-        .as_hash()
-        .unwrap()
-        .get(&Yaml::String("test_cases".to_string()))
-        .unwrap()
-        .as_vec()
-        .unwrap();
-
     let yaml_user_agent_string = Yaml::String("user_agent_string".to_string());
     let yaml_family = Yaml::String("family".to_string());
     let yaml_brand = Yaml::String("brand".to_string());
     let yaml_model = Yaml::String("model".to_string());
 
-    for test_case in test_cases {
-        let test_case = test_case.as_hash().unwrap();
+    for path in DEVICE_TEST_FILES {
+        for_each_test_case(path, |test_case| {
+            let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
 
-        let user_agent = test_case.get(&yaml_user_agent_string).unwrap().as_str().unwrap();
+            let name = field(test_case, &yaml_family);
+            let brand = field(test_case, &yaml_brand);
+            let model = field(test_case, &yaml_model);
 
-        let name = test_case.get(&yaml_family).unwrap().as_str().map(Cow::from);
-        let brand = test_case.get(&yaml_brand).unwrap().as_str().map(Cow::from);
-        let model = test_case.get(&yaml_model).unwrap().as_str().map(Cow::from);
+            let device = UA_PARSER.parse_device(user_agent);
 
-        let device = ua_parser.parse_device(user_agent);
-
-        assert_eq!(name, device.name);
-        assert_eq!(brand, device.brand);
-        assert_eq!(model, device.model);
+            assert_eq!(name, device.name, "{path}: {user_agent}");
+            assert_eq!(brand, device.brand, "{path}: {user_agent}");
+            assert_eq!(model, device.model, "{path}: {user_agent}");
+        });
     }
 }
 
@@ -185,10 +182,8 @@ fn test_cpu() {
         ("ppc64", "Mozilla/5.0 (X11; U; Linux ppc64le; rv:60.0) Gecko/20100101 Firefox/60.0"),
     ];
 
-    let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
-
     for (answer, user_agent) in test_cases.iter() {
-        let cpu = ua_parser.parse_cpu(user_agent);
+        let cpu = UA_PARSER.parse_cpu(user_agent);
 
         assert_eq!(Some(Cow::from(*answer)), cpu.architecture);
     }
@@ -297,10 +292,8 @@ fn test_engine() {
         ("ArkWeb", Some("2"), Some("0"), Some("1"), "Mozilla/5.0 (Linux; ArkWeb/2.0.1) like Gecko"),
     ];
 
-    let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
-
     for (answer, major, minor, patch, user_agent) in test_cases.iter() {
-        let engine = ua_parser.parse_engine(user_agent);
+        let engine = UA_PARSER.parse_engine(user_agent);
 
         assert_eq!(Some(Cow::from(*answer)), engine.name);
         assert_eq!(major.map(Cow::from), engine.major);

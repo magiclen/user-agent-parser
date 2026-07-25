@@ -3,7 +3,7 @@ use yaml_rust::Yaml;
 
 use crate::{
     UserAgentParserError,
-    regexes::{Replacement, build_regex, optional_replacement},
+    regexes::{Replacement, from_yaml_section, optional_replacement},
 };
 
 #[derive(Debug)]
@@ -18,40 +18,21 @@ pub(crate) struct OSRegex {
 
 impl OSRegex {
     pub(crate) fn from_yaml(yaml: &Yaml) -> Result<Vec<OSRegex>, UserAgentParserError> {
-        let yamls = yaml.as_vec().ok_or(UserAgentParserError::IncorrectSource)?;
-
-        let mut os_regexes = Vec::with_capacity(yamls.len());
-
-        let yaml_regex = Yaml::String("regex".to_string());
         let yaml_os_replacement = Yaml::String("os_replacement".to_string());
         let yaml_os_v1_replacement = Yaml::String("os_v1_replacement".to_string());
         let yaml_os_v2_replacement = Yaml::String("os_v2_replacement".to_string());
         let yaml_os_v3_replacement = Yaml::String("os_v3_replacement".to_string());
         let yaml_os_v4_replacement = Yaml::String("os_v4_replacement".to_string());
 
-        for yaml in yamls {
-            let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
-
-            let regex = build_regex(
-                yaml.get(&yaml_regex)
-                    .ok_or(UserAgentParserError::IncorrectSource)?
-                    .as_str()
-                    .ok_or(UserAgentParserError::IncorrectSource)?,
-                false,
-            )?;
-
-            let os_regex = OSRegex {
+        from_yaml_section(yaml, |regex, yaml| {
+            Ok(OSRegex {
                 regex,
                 os_replacement: optional_replacement(yaml, &yaml_os_replacement)?,
                 os_v1_replacement: optional_replacement(yaml, &yaml_os_v1_replacement)?,
                 os_v2_replacement: optional_replacement(yaml, &yaml_os_v2_replacement)?,
                 os_v3_replacement: optional_replacement(yaml, &yaml_os_v3_replacement)?,
                 os_v4_replacement: optional_replacement(yaml, &yaml_os_v4_replacement)?,
-            };
-
-            os_regexes.push(os_regex);
-        }
-
-        Ok(os_regexes)
+            })
+        })
     }
 }

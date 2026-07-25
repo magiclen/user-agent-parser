@@ -10,9 +10,13 @@ use yaml_rust::ScanError;
 #[derive(Debug)]
 /// Possible errors of `UserAgentParser`.
 pub enum UserAgentParserError {
+    /// The source is not valid YAML.
     ScanError(ScanError),
+    /// The file of regular expressions could not be read.
     IOError(IOError),
+    /// One of the patterns could not be compiled, or it is too large.
     RegexError(RegexError),
+    /// The source is valid YAML, but it is not shaped like a list of regular expressions.
     IncorrectSource,
 }
 

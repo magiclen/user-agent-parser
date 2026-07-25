@@ -30,6 +30,39 @@ pub(crate) fn build_regex(pattern: &str, case_insensitive: bool) -> Result<Regex
         .build()
 }
 
+/// Walks one parser section of the YAML source, compiling the regex of each entry and letting `f` read the replacements it needs.
+pub(crate) fn from_yaml_section<T>(
+    yaml: &Yaml,
+    mut f: impl FnMut(Regex, &Hash) -> Result<T, UserAgentParserError>,
+) -> Result<Vec<T>, UserAgentParserError> {
+    let yamls = yaml.as_vec().ok_or(UserAgentParserError::IncorrectSource)?;
+
+    let mut entries = Vec::with_capacity(yamls.len());
+
+    let yaml_regex = Yaml::String("regex".to_string());
+    let yaml_regex_flag = Yaml::String("regex_flag".to_string());
+
+    for yaml in yamls {
+        let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
+
+        let pattern = yaml
+            .get(&yaml_regex)
+            .ok_or(UserAgentParserError::IncorrectSource)?
+            .as_str()
+            .ok_or(UserAgentParserError::IncorrectSource)?;
+
+        // uap-core only sets `regex_flag` on the device parsers, but the specification does not limit it to them.
+        let case_insensitive = match yaml.get(&yaml_regex_flag) {
+            Some(yaml) => yaml.as_str().ok_or(UserAgentParserError::IncorrectSource)? == "i",
+            None => false,
+        };
+
+        entries.push(f(build_regex(pattern, case_insensitive)?, yaml)?);
+    }
+
+    Ok(entries)
+}
+
 /// Reads an optional replacement string out of a single parser entry of the YAML source.
 pub(crate) fn optional_replacement(
     yaml: &Hash,

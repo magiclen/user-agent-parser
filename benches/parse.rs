@@ -1,9 +1,13 @@
-use std::sync::LazyLock;
+use std::{fs, sync::LazyLock};
 
 use bencher::{Bencher, benchmark_group, benchmark_main, black_box};
 use user_agent_parser::UserAgentParser;
 
 const REGEXES_PATH: &str = "uap-core/regexes.yaml";
+
+// A string which no parser can match, so that the whole list of regexes has to be walked.
+// This is the worst case of every `parse_*` method, and it is also what a plain desktop user agent costs `parse_device`.
+const NO_MATCH: &str = "there-is-no-user-agent-here";
 
 // A spread of desktop, mobile, bot and legacy user agents, so that both early-matching and late-matching regexes are covered.
 const USER_AGENTS: [&str; 8] = [
@@ -28,8 +32,15 @@ const USER_AGENTS: [&str; 8] = [
 static UA_PARSER: LazyLock<UserAgentParser> =
     LazyLock::new(|| UserAgentParser::from_path(REGEXES_PATH).unwrap());
 
+static REGEXES_YAML: LazyLock<String> = LazyLock::new(|| fs::read_to_string(REGEXES_PATH).unwrap());
+
 fn from_path(bencher: &mut Bencher) {
     bencher.iter(|| black_box(UserAgentParser::from_path(REGEXES_PATH).unwrap()));
+}
+
+// The same as `from_path` without the file reading, so that the YAML parsing and the regex compilation can be seen on their own.
+fn from_str(bencher: &mut Bencher) {
+    bencher.iter(|| black_box(UserAgentParser::from_str(REGEXES_YAML.as_str()).unwrap()));
 }
 
 fn parse_product(bencher: &mut Bencher) {
@@ -72,13 +83,29 @@ fn parse_engine(bencher: &mut Bencher) {
     });
 }
 
+fn parse_product_no_match(bencher: &mut Bencher) {
+    bencher.iter(|| black_box(UA_PARSER.parse_product(black_box(NO_MATCH))));
+}
+
+fn parse_os_no_match(bencher: &mut Bencher) {
+    bencher.iter(|| black_box(UA_PARSER.parse_os(black_box(NO_MATCH))));
+}
+
+fn parse_device_no_match(bencher: &mut Bencher) {
+    bencher.iter(|| black_box(UA_PARSER.parse_device(black_box(NO_MATCH))));
+}
+
 benchmark_group!(
     benches,
     from_path,
+    from_str,
     parse_product,
     parse_os,
     parse_device,
     parse_cpu,
-    parse_engine
+    parse_engine,
+    parse_product_no_match,
+    parse_os_no_match,
+    parse_device_no_match
 );
 benchmark_main!(benches);
