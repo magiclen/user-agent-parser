@@ -30,7 +30,17 @@ impl Display for UserAgentParserError {
     }
 }
 
-impl Error for UserAgentParserError {}
+impl Error for UserAgentParserError {
+    #[inline]
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            UserAgentParserError::ScanError(err) => Some(err),
+            UserAgentParserError::IOError(err) => Some(err),
+            UserAgentParserError::RegexError(err) => Some(err),
+            UserAgentParserError::IncorrectSource => None,
+        }
+    }
+}
 
 impl From<ScanError> for UserAgentParserError {
     #[inline]

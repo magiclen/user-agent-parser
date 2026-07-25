@@ -23,7 +23,14 @@ impl Replacement {
 
         match Self::parse(text.as_ref()) {
             Some(segments) => Replacement::Template(segments),
-            None => Replacement::Literal(text),
+            // uap-core asks for the result to be trimmed, and a literal can be trimmed once here instead of on every match.
+            None => Replacement::Literal(match text {
+                Cow::Borrowed(text) => Cow::Borrowed(text.trim()),
+                Cow::Owned(text) => match text.trim() {
+                    trimmed if trimmed.len() == text.len() => Cow::Owned(text),
+                    trimmed => Cow::Owned(trimmed.to_string()),
+                },
+            }),
         }
     }
 
@@ -65,6 +72,7 @@ impl Replacement {
     /// Resolves this replacement against the captures of a matched user-agent string.
     pub(crate) fn resolve<'a>(&'a self, captures: &Captures<'a>) -> Option<Cow<'a, str>> {
         match self {
+            Replacement::Literal(text) if text.is_empty() => None,
             Replacement::Literal(text) => Some(Cow::from(text.as_ref())),
             Replacement::Template(segments) => {
                 // A lone `$1` is by far the most common template, and it needs no allocation at all.

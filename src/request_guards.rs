@@ -7,6 +7,9 @@ use rocket::{
 
 use crate::{UserAgentParser, models::*};
 
+const NOT_MANAGED: &str = "a `UserAgentParser` is not managed by Rocket; add \
+                           `.manage(UserAgentParser::from_path(..))` when building the instance";
+
 fn from_request_user_agent<'r>(request: &'r Request<'_>) -> UserAgent<'r> {
     let user_agent: Option<Cow<'r, str>> =
         request.headers().get("user-agent").next().map(Cow::from);
@@ -16,6 +19,7 @@ fn from_request_user_agent<'r>(request: &'r Request<'_>) -> UserAgent<'r> {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for UserAgent<'r> {
     type Error = ();
@@ -25,6 +29,7 @@ impl<'r> FromRequest<'r> for UserAgent<'r> {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for &UserAgent<'r> {
     type Error = ();
@@ -36,162 +41,69 @@ impl<'r> FromRequest<'r> for &UserAgent<'r> {
     }
 }
 
-fn from_request_product<'r>(request: &'r Request<'_>) -> Product<'r> {
-    let user_agent_parser = request.rocket().state::<UserAgentParser>().unwrap();
+/// Implements both the owned and the cached-reference request guard of one model.
+macro_rules! impl_from_request {
+    ($model:ident, $parse:ident) => {
+        #[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
+        #[rocket::async_trait]
+        impl<'r> FromRequest<'r> for $model<'r> {
+            type Error = ();
 
-    let user_agent: Option<&str> = request.headers().get("user-agent").next();
+            async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+                Outcome::Success(parse(request))
+            }
+        }
 
-    match user_agent {
-        Some(user_agent) => user_agent_parser.parse_product(user_agent),
-        None => Product::default(),
-    }
+        #[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
+        #[rocket::async_trait]
+        impl<'r> FromRequest<'r> for &$model<'r> {
+            type Error = ();
+
+            async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
+                let cache = request.local_cache_async(async { parse(request).into_owned() }).await;
+
+                Outcome::Success(cache)
+            }
+        }
+
+        fn parse<'r>(request: &'r Request<'_>) -> $model<'r> {
+            let user_agent_parser = request.rocket().state::<UserAgentParser>().expect(NOT_MANAGED);
+
+            match request.headers().get("user-agent").next() {
+                Some(user_agent) => user_agent_parser.$parse(user_agent),
+                None => $model::default(),
+            }
+        }
+    };
 }
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for Product<'r> {
-    type Error = ();
+// Each model gets its own module, so that the `parse` function of the macro does not clash.
+mod product {
+    use super::*;
 
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success(from_request_product(request))
-    }
+    impl_from_request!(Product, parse_product);
 }
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for &Product<'r> {
-    type Error = ();
+mod os {
+    use super::*;
 
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        let cache =
-            request.local_cache_async(async { from_request_product(request).into_owned() }).await;
-
-        Outcome::Success(cache)
-    }
+    impl_from_request!(OS, parse_os);
 }
 
-fn from_request_os<'r>(request: &'r Request<'_>) -> OS<'r> {
-    let user_agent_parser = request.rocket().state::<UserAgentParser>().unwrap();
+mod device {
+    use super::*;
 
-    let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-    match user_agent {
-        Some(user_agent) => user_agent_parser.parse_os(user_agent),
-        None => OS::default(),
-    }
+    impl_from_request!(Device, parse_device);
 }
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for OS<'r> {
-    type Error = ();
+mod cpu {
+    use super::*;
 
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success(from_request_os(request))
-    }
+    impl_from_request!(CPU, parse_cpu);
 }
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for &OS<'r> {
-    type Error = ();
+mod engine {
+    use super::*;
 
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        let cache =
-            request.local_cache_async(async { from_request_os(request).into_owned() }).await;
-
-        Outcome::Success(cache)
-    }
-}
-
-fn from_request_device<'r>(request: &'r Request<'_>) -> Device<'r> {
-    let user_agent_parser = request.rocket().state::<UserAgentParser>().unwrap();
-
-    let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-    match user_agent {
-        Some(user_agent) => user_agent_parser.parse_device(user_agent),
-        None => Device::default(),
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for Device<'r> {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success(from_request_device(request))
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for &Device<'r> {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        let cache =
-            request.local_cache_async(async { from_request_device(request).into_owned() }).await;
-
-        Outcome::Success(cache)
-    }
-}
-
-fn from_request_cpu<'r>(request: &'r Request<'_>) -> CPU<'r> {
-    let user_agent_parser = request.rocket().state::<UserAgentParser>().unwrap();
-
-    let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-    match user_agent {
-        Some(user_agent) => user_agent_parser.parse_cpu(user_agent),
-        None => CPU::default(),
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for CPU<'r> {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success(from_request_cpu(request))
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for &CPU<'r> {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        let cache =
-            request.local_cache_async(async { from_request_cpu(request).into_owned() }).await;
-
-        Outcome::Success(cache)
-    }
-}
-
-fn from_request_engine<'r>(request: &'r Request<'_>) -> Engine<'r> {
-    let user_agent_parser = request.rocket().state::<UserAgentParser>().unwrap();
-
-    let user_agent: Option<&str> = request.headers().get("user-agent").next();
-
-    match user_agent {
-        Some(user_agent) => user_agent_parser.parse_engine(user_agent),
-        None => Engine::default(),
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for Engine<'r> {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        Outcome::Success(from_request_engine(request))
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for &Engine<'r> {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> OutcomeResult<Self, Self::Error> {
-        let cache =
-            request.local_cache_async(async { from_request_engine(request).into_owned() }).await;
-
-        Outcome::Success(cache)
-    }
+    impl_from_request!(Engine, parse_engine);
 }

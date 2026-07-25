@@ -16,10 +16,14 @@ fn user_agent_str(parts: &Parts) -> Option<&str> {
 }
 
 #[inline]
-fn parser(parts: &Parts) -> Option<&Arc<UserAgentParser>> {
-    parts.extensions.get::<Arc<UserAgentParser>>()
+fn parser(parts: &Parts) -> &Arc<UserAgentParser> {
+    parts.extensions.get::<Arc<UserAgentParser>>().expect(
+        "a `UserAgentParser` is not shared with axum; add an `Extension<Arc<UserAgentParser>>` \
+         layer to the router",
+    )
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S: Send + Sync> FromRequestParts<S> for UserAgent<'static> {
     type Rejection = Infallible;
 
@@ -34,6 +38,7 @@ impl<S: Send + Sync> FromRequestParts<S> for UserAgent<'static> {
 
 macro_rules! impl_from_request_parts {
     ($model:ident, $parse:ident) => {
+        #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
         impl<S: Send + Sync> FromRequestParts<S> for $model<'static> {
             type Rejection = Infallible;
 
@@ -41,9 +46,10 @@ macro_rules! impl_from_request_parts {
                 parts: &mut Parts,
                 _state: &S,
             ) -> Result<Self, Self::Rejection> {
-                let result = match (parser(parts), user_agent_str(parts)) {
-                    (Some(parser), Some(user_agent)) => parser.$parse(user_agent).into_owned(),
-                    _ => $model::default(),
+                // A request without a `User-Agent` header is normal, unlike a missing parser, so it just yields the default.
+                let result = match user_agent_str(parts) {
+                    Some(user_agent) => parser(parts).$parse(user_agent).into_owned(),
+                    None => $model::default(),
                 };
 
                 Ok(result)

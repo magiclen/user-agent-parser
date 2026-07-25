@@ -249,13 +249,14 @@ pub use models::*;
 use regexes::*;
 use yaml_rust::{Yaml, YamlLoader};
 
+/// A set of regular expressions which can extract the product, OS, device, CPU and engine information out of a user-agent string.
 #[derive(Debug)]
 pub struct UserAgentParser {
     product_regexes: Vec<ProductRegex>,
     os_regexes:      Vec<OSRegex>,
     device_regexes:  Vec<DeviceRegex>,
-    cpu_regexes:     Vec<CPURegex>,
-    engine_regexes:  Vec<EngineRegex>,
+    cpu_regexes:     &'static [CPURegex],
+    engine_regexes:  &'static [EngineRegex],
 }
 
 impl UserAgentParser {
@@ -313,19 +314,28 @@ impl UserAgentParser {
     }
 }
 
+/// The results borrow from both the parser and the user-agent string, so call `into_owned` on them to break that tie.
 impl UserAgentParser {
+    /// Extracts the product information, falling back to a `name` of `Some("Other")` when no pattern matches.
     pub fn parse_product<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Product<'a> {
+        let user_agent = user_agent.as_ref();
+
         let mut product = Product::default();
 
         for product_regex in self.product_regexes.iter() {
-            if let Some(captures) = product_regex.regex.captures(user_agent.as_ref()) {
-                product.name = resolve(1, product_regex.family_replacement.as_ref(), &captures);
-                product.major = resolve(2, product_regex.v1_replacement.as_ref(), &captures);
-                product.minor = resolve(3, product_regex.v2_replacement.as_ref(), &captures);
-                product.patch = resolve(4, product_regex.v3_replacement.as_ref(), &captures);
-
-                break;
+            // `is_match` skips capture tracking, so the regexes that do not match cost much less than a `captures` call.
+            if !product_regex.regex.is_match(user_agent) {
+                continue;
             }
+
+            let captures = product_regex.regex.captures(user_agent).unwrap();
+
+            product.name = resolve(1, product_regex.family_replacement.as_ref(), &captures);
+            product.major = resolve(2, product_regex.v1_replacement.as_ref(), &captures);
+            product.minor = resolve(3, product_regex.v2_replacement.as_ref(), &captures);
+            product.patch = resolve(4, product_regex.v3_replacement.as_ref(), &captures);
+
+            break;
         }
 
         if product.name.is_none() {
@@ -335,19 +345,26 @@ impl UserAgentParser {
         product
     }
 
+    /// Extracts the OS information, falling back to a `name` of `Some("Other")` when no pattern matches.
     pub fn parse_os<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> OS<'a> {
+        let user_agent = user_agent.as_ref();
+
         let mut os = OS::default();
 
         for os_regex in self.os_regexes.iter() {
-            if let Some(captures) = os_regex.regex.captures(user_agent.as_ref()) {
-                os.name = resolve(1, os_regex.os_replacement.as_ref(), &captures);
-                os.major = resolve(2, os_regex.os_v1_replacement.as_ref(), &captures);
-                os.minor = resolve(3, os_regex.os_v2_replacement.as_ref(), &captures);
-                os.patch = resolve(4, os_regex.os_v3_replacement.as_ref(), &captures);
-                os.patch_minor = resolve(5, os_regex.os_v4_replacement.as_ref(), &captures);
-
-                break;
+            if !os_regex.regex.is_match(user_agent) {
+                continue;
             }
+
+            let captures = os_regex.regex.captures(user_agent).unwrap();
+
+            os.name = resolve(1, os_regex.os_replacement.as_ref(), &captures);
+            os.major = resolve(2, os_regex.os_v1_replacement.as_ref(), &captures);
+            os.minor = resolve(3, os_regex.os_v2_replacement.as_ref(), &captures);
+            os.patch = resolve(4, os_regex.os_v3_replacement.as_ref(), &captures);
+            os.patch_minor = resolve(5, os_regex.os_v4_replacement.as_ref(), &captures);
+
+            break;
         }
 
         if os.name.is_none() {
@@ -357,19 +374,26 @@ impl UserAgentParser {
         os
     }
 
+    /// Extracts the device information, falling back to a `name` of `Some("Other")` when no pattern matches.
     pub fn parse_device<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Device<'a> {
+        let user_agent = user_agent.as_ref();
+
         let mut device = Device::default();
 
         for device_regex in self.device_regexes.iter() {
-            if let Some(captures) = device_regex.regex.captures(user_agent.as_ref()) {
-                device.name = resolve(1, device_regex.device_replacement.as_ref(), &captures);
-                // uap-core gives the brand no positional default; it is only set when a `brand_replacement` exists.
-                device.brand =
-                    device_regex.brand_replacement.as_ref().and_then(|r| r.resolve(&captures));
-                device.model = resolve(1, device_regex.model_replacement.as_ref(), &captures);
-
-                break;
+            if !device_regex.regex.is_match(user_agent) {
+                continue;
             }
+
+            let captures = device_regex.regex.captures(user_agent).unwrap();
+
+            device.name = resolve(1, device_regex.device_replacement.as_ref(), &captures);
+            // uap-core gives the brand no positional default; it is only set when a `brand_replacement` exists.
+            device.brand =
+                device_regex.brand_replacement.as_ref().and_then(|r| r.resolve(&captures));
+            device.model = resolve(1, device_regex.model_replacement.as_ref(), &captures);
+
+            break;
         }
 
         if device.name.is_none() {
@@ -379,33 +403,46 @@ impl UserAgentParser {
         device
     }
 
+    /// Extracts the CPU architecture, which stays `None` when no pattern matches.
     pub fn parse_cpu<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> CPU<'a> {
+        let user_agent = user_agent.as_ref();
+
         let mut cpu = CPU::default();
 
         for cpu_regex in self.cpu_regexes.iter() {
-            if let Some(captures) = cpu_regex.regex.captures(user_agent.as_ref()) {
-                cpu.architecture =
-                    resolve(1, cpu_regex.architecture_replacement.as_ref(), &captures);
-
-                break;
+            if !cpu_regex.regex.is_match(user_agent) {
+                continue;
             }
+
+            let captures = cpu_regex.regex.captures(user_agent).unwrap();
+
+            cpu.architecture = resolve(1, cpu_regex.architecture_replacement.as_ref(), &captures);
+
+            break;
         }
 
         cpu
     }
 
+    /// Extracts the layout engine information, which stays `None` when no pattern matches.
     pub fn parse_engine<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Engine<'a> {
+        let user_agent = user_agent.as_ref();
+
         let mut engine = Engine::default();
 
         for engine_regex in self.engine_regexes.iter() {
-            if let Some(captures) = engine_regex.regex.captures(user_agent.as_ref()) {
-                engine.name = resolve(1, engine_regex.name_replacement.as_ref(), &captures);
-                engine.major = resolve(2, engine_regex.engine_v1_replacement.as_ref(), &captures);
-                engine.minor = resolve(3, engine_regex.engine_v2_replacement.as_ref(), &captures);
-                engine.patch = resolve(4, engine_regex.engine_v3_replacement.as_ref(), &captures);
-
-                break;
+            if !engine_regex.regex.is_match(user_agent) {
+                continue;
             }
+
+            let captures = engine_regex.regex.captures(user_agent).unwrap();
+
+            engine.name = resolve(1, engine_regex.name_replacement.as_ref(), &captures);
+            engine.major = resolve(2, engine_regex.engine_v1_replacement.as_ref(), &captures);
+            engine.minor = resolve(3, engine_regex.engine_v2_replacement.as_ref(), &captures);
+            engine.patch = resolve(4, engine_regex.engine_v3_replacement.as_ref(), &captures);
+
+            break;
         }
 
         engine

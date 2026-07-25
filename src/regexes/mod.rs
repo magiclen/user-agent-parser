@@ -5,15 +5,30 @@ mod os_regex;
 mod product_regex;
 mod replacement;
 
-pub use cpu_regex::CPURegex;
-pub use device_regex::DeviceRegex;
-pub use engine_regex::EngineRegex;
-pub use os_regex::OSRegex;
-pub use product_regex::ProductRegex;
+pub(crate) use cpu_regex::CPURegex;
+pub(crate) use device_regex::DeviceRegex;
+pub(crate) use engine_regex::EngineRegex;
+pub(crate) use os_regex::OSRegex;
+pub(crate) use product_regex::ProductRegex;
+use regex::{Error as RegexError, Regex, RegexBuilder};
 pub(crate) use replacement::{Replacement, resolve};
 use yaml_rust::{Yaml, yaml::Hash};
 
 use crate::UserAgentParserError;
+
+/// A few uap-core patterns are huge literal alternations whose lazy DFA does not fit in the regex crate's default 2 MiB cache.
+/// Once that cache starts thrashing, matching falls back to a far slower engine, which costs more than an order of magnitude.
+/// The cliff currently sits between 3 MiB and 4 MiB, so this leaves plenty of room; the cache is grown on demand, not preallocated.
+const DFA_SIZE_LIMIT: usize = 8 * 1024 * 1024;
+
+/// Compiles a single pattern with the settings shared by every kind of parser.
+#[inline]
+pub(crate) fn build_regex(pattern: &str, case_insensitive: bool) -> Result<Regex, RegexError> {
+    RegexBuilder::new(pattern)
+        .case_insensitive(case_insensitive)
+        .dfa_size_limit(DFA_SIZE_LIMIT)
+        .build()
+}
 
 /// Reads an optional replacement string out of a single parser entry of the YAML source.
 pub(crate) fn optional_replacement(

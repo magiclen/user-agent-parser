@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
-#[derive(Debug, Clone, Default)]
+/// The raw `User-Agent` header of a request.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct UserAgent<'a> {
+    /// The header value, or `None` when the request carries no `User-Agent` header.
     pub user_agent: Option<Cow<'a, str>>,
 }
 

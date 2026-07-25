@@ -1,10 +1,15 @@
 use std::borrow::Cow;
 
+/// The layout engine of the product a user agent belongs to.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Engine<'a> {
+    /// The engine name, or `None` when no pattern matches.
     pub name:  Option<Cow<'a, str>>,
+    /// The major version, if the matching pattern captures one.
     pub major: Option<Cow<'a, str>>,
+    /// The minor version, if the matching pattern captures one.
     pub minor: Option<Cow<'a, str>>,
+    /// The patch version, if the matching pattern captures one.
     pub patch: Option<Cow<'a, str>>,
 }
 
