@@ -47,6 +47,8 @@ static REGEXES: LazyLock<Vec<EngineRegex>> = LazyLock::new(|| {
         engine(r"(?i)(khtml)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?", "KHTML"),
         engine(r"(?i)(tasman)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?", "Tasman"),
         engine(r"(?i)(links)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?", "Links"),
+        // Dillo has to stay behind Lynx, because a Lynx user agent can carry a Dillo token of its own.
+        engine(r"(?i)(dillo)[/\s]\(?(\w+)(?:\.(\w+))?(?:\.(\w+))?", "Dillo"),
         engine(r"(?i)(icab)[/\s]([23])(?:\.(\d+))?(?:\.(\d+))?", "iCab"),
         engine(r"(?i)\blibweb", "LibWeb"),
         engine(r"(?i)(rv:)(\w+)(?:\.(\w+))?(?:\.(\w+))?.+gecko", "Gecko"),

@@ -44,9 +44,12 @@ macro_rules! impl_from_request_parts {
                 parts: &mut Parts,
                 _state: &S,
             ) -> Result<Self, Self::Rejection> {
+                // The parser is looked up first, so a missing layer is reported even by a request which carries no `User-Agent`.
+                let user_agent_parser = parser(parts);
+
                 // A request without a `User-Agent` header is normal, unlike a missing parser, so it just yields the default.
                 let result = match user_agent_str(parts) {
-                    Some(user_agent) => parser(parts).$parse(user_agent).into_owned(),
+                    Some(user_agent) => user_agent_parser.$parse(user_agent).into_owned(),
                     None => $model::default(),
                 };
 

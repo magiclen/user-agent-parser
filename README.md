@@ -177,7 +177,7 @@ features = ["rocket"]
 
 Let `Rocket` manage a `UserAgentParser` instance, and the `Product`, `OS`, `Device`, `CPU`, `Engine` models of this crate (plus the `UserAgent` model) can be used as *Request Guards*.
 
-A request guard panics if no `UserAgentParser` is managed, because that is a mistake in the setup rather than something a single request can recover from. A request without a `User-Agent` header is fine and yields the default model.
+The `Product`, `OS`, `Device`, `CPU` and `Engine` guards panic if no `UserAgentParser` is managed, because that is a mistake in the setup rather than something a single request can recover from. The `UserAgent` guard needs no parser at all. A request without a `User-Agent` header is fine and yields the default model.
 
 ```rust
 #[macro_use]
@@ -217,7 +217,7 @@ features = ["axum"]
 
 Share a `UserAgentParser` instance through an `Extension<Arc<UserAgentParser>>` layer, and the owned models `Product<'static>`, `OS<'static>`, `Device<'static>`, `CPU<'static>`, `Engine<'static>` (plus the `UserAgent<'static>` model) can be used as *extractors*.
 
-An extractor panics if that layer is missing, because that is a mistake in the setup rather than something a single request can recover from. A request without a `User-Agent` header is fine and yields the default model.
+The `Product`, `OS`, `Device`, `CPU` and `Engine` extractors panic if that layer is missing, because that is a mistake in the setup rather than something a single request can recover from. The `UserAgent` extractor needs no parser at all. A request without a `User-Agent` header is fine and yields the default model.
 
 ```rust
 use std::sync::Arc;

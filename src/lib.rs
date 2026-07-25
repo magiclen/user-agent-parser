@@ -175,7 +175,7 @@ features = ["rocket"]
 
 Let `Rocket` manage a `UserAgentParser` instance, and the `Product`, `OS`, `Device`, `CPU`, `Engine` models of this crate (plus the `UserAgent` model) can be used as *Request Guards*.
 
-A request guard panics if no `UserAgentParser` is managed, because that is a mistake in the setup rather than something a single request can recover from. A request without a `User-Agent` header is fine and yields the default model.
+The `Product`, `OS`, `Device`, `CPU` and `Engine` guards panic if no `UserAgentParser` is managed, because that is a mistake in the setup rather than something a single request can recover from. The `UserAgent` guard needs no parser at all. A request without a `User-Agent` header is fine and yields the default model.
 
 ```rust,ignore
 #[macro_use]
@@ -215,7 +215,7 @@ features = ["axum"]
 
 Share a `UserAgentParser` instance through an `Extension<Arc<UserAgentParser>>` layer, and the owned models `Product<'static>`, `OS<'static>`, `Device<'static>`, `CPU<'static>`, `Engine<'static>` (plus the `UserAgent<'static>` model) can be used as *extractors*.
 
-An extractor panics if that layer is missing, because that is a mistake in the setup rather than something a single request can recover from. A request without a `User-Agent` header is fine and yields the default model.
+The `Product`, `OS`, `Device`, `CPU` and `Engine` extractors panic if that layer is missing, because that is a mistake in the setup rather than something a single request can recover from. The `UserAgent` extractor needs no parser at all. A request without a `User-Agent` header is fine and yields the default model.
 
 ```rust,ignore
 use std::sync::Arc;
@@ -306,56 +306,54 @@ impl UserAgentParser {
     pub fn from_str<S: AsRef<str>>(yaml: S) -> Result<UserAgentParser, UserAgentParserError> {
         let yamls = YamlLoader::load_from_str(yaml.as_ref())?;
 
-        if yamls.is_empty() {
-            Err(UserAgentParserError::IncorrectSource)
-        } else {
-            let yaml = &yamls[0];
+        // More than one document means the source is not a plain list of regular expressions, and reading only the first one would silently drop the rest.
+        let [yaml] = yamls.as_slice() else {
+            return Err(UserAgentParserError::IncorrectSource);
+        };
 
-            match yaml.as_hash() {
-                Some(yaml) => {
-                    let user_agent_parsers =
-                        yaml.get(&Yaml::String("user_agent_parsers".to_string()));
-                    let os_parsers = yaml.get(&Yaml::String("os_parsers".to_string()));
-                    let device_parsers = yaml.get(&Yaml::String("device_parsers".to_string()));
-                    let cpu_parsers = yaml.get(&Yaml::String("cpu_parsers".to_string()));
-                    let engine_parsers = yaml.get(&Yaml::String("engine_parsers".to_string()));
+        match yaml.as_hash() {
+            Some(yaml) => {
+                let user_agent_parsers = yaml.get(&Yaml::String("user_agent_parsers".to_string()));
+                let os_parsers = yaml.get(&Yaml::String("os_parsers".to_string()));
+                let device_parsers = yaml.get(&Yaml::String("device_parsers".to_string()));
+                let cpu_parsers = yaml.get(&Yaml::String("cpu_parsers".to_string()));
+                let engine_parsers = yaml.get(&Yaml::String("engine_parsers".to_string()));
 
-                    let product_regexes = match user_agent_parsers {
-                        Some(user_agent_parsers) => ProductRegex::from_yaml(user_agent_parsers)?,
-                        None => Vec::new(),
-                    };
+                let product_regexes = match user_agent_parsers {
+                    Some(user_agent_parsers) => ProductRegex::from_yaml(user_agent_parsers)?,
+                    None => Vec::new(),
+                };
 
-                    let os_regexes = match os_parsers {
-                        Some(os_parsers) => OSRegex::from_yaml(os_parsers)?,
-                        None => Vec::new(),
-                    };
+                let os_regexes = match os_parsers {
+                    Some(os_parsers) => OSRegex::from_yaml(os_parsers)?,
+                    None => Vec::new(),
+                };
 
-                    let device_regexes = match device_parsers {
-                        Some(device_parsers) => DeviceRegex::from_yaml(device_parsers)?,
-                        None => Vec::new(),
-                    };
+                let device_regexes = match device_parsers {
+                    Some(device_parsers) => DeviceRegex::from_yaml(device_parsers)?,
+                    None => Vec::new(),
+                };
 
-                    // The CPU and the engine sections are optional, and leaving one out keeps the built-in patterns instead of parsing nothing.
-                    let cpu_regexes = match cpu_parsers {
-                        Some(cpu_parsers) => Cow::from(CPURegex::from_yaml(cpu_parsers)?),
-                        None => Cow::from(CPURegex::built_in_regexes()),
-                    };
+                // The CPU and the engine sections are optional, and leaving one out keeps the built-in patterns instead of parsing nothing.
+                let cpu_regexes = match cpu_parsers {
+                    Some(cpu_parsers) => Cow::from(CPURegex::from_yaml(cpu_parsers)?),
+                    None => Cow::from(CPURegex::built_in_regexes()),
+                };
 
-                    let engine_regexes = match engine_parsers {
-                        Some(engine_parsers) => Cow::from(EngineRegex::from_yaml(engine_parsers)?),
-                        None => Cow::from(EngineRegex::built_in_regexes()),
-                    };
+                let engine_regexes = match engine_parsers {
+                    Some(engine_parsers) => Cow::from(EngineRegex::from_yaml(engine_parsers)?),
+                    None => Cow::from(EngineRegex::built_in_regexes()),
+                };
 
-                    Ok(UserAgentParser {
-                        product_regexes,
-                        os_regexes,
-                        device_regexes,
-                        cpu_regexes,
-                        engine_regexes,
-                    })
-                },
-                None => Err(UserAgentParserError::IncorrectSource),
-            }
+                Ok(UserAgentParser {
+                    product_regexes,
+                    os_regexes,
+                    device_regexes,
+                    cpu_regexes,
+                    engine_regexes,
+                })
+            },
+            None => Err(UserAgentParserError::IncorrectSource),
         }
     }
 }

@@ -192,6 +192,11 @@ fn test_cpu() {
         ),
         ("mips64", "Mozilla/5.0 (X11; U; Linux mips64el; rv:60.0) Gecko/20100101 Firefox/60.0"),
         ("ppc64", "Mozilla/5.0 (X11; U; Linux ppc64le; rv:60.0) Gecko/20100101 Firefox/60.0"),
+        ("alpha", "Mozilla/5.0 (X11; U; OSF1 alpha; en-US; rv:1.4) Gecko/20030903"),
+        ("alpha", "Mozilla/4.7 [en] (X11; I; OSF1 V4.0 alpha)"),
+        // Netscape 3.01 on a DEC Alpha, which is the only shape the `[AXP]` token comes in.
+        ("alpha", "Mozilla/3.01 (WinNT; I) [AXP]"),
+        ("68k", "Mozilla/3.01 (compatible; AmigaVoyager/2.95; AmigaOS/MC680x0)"),
     ];
 
     for (answer, user_agent) in test_cases {
@@ -199,6 +204,9 @@ fn test_cpu() {
 
         assert_eq!(Some(Cow::from(answer)), cpu.architecture);
     }
+
+    // `alpha/06` is a browser of its own, so the Alpha architecture has to stay tied to the systems which ran on it.
+    assert_eq!(None, UA_PARSER.parse_cpu("alpha/06 (compatible; IBrowse; AmigaOS)").architecture);
 }
 
 #[test]
@@ -302,6 +310,15 @@ fn test_engine() {
             "Mozilla/5.0 (SerenityOS; x86_64) LibWeb+LibJS/1.0 Browser/1.0",
         ),
         ("ArkWeb", Some("2"), Some("0"), Some("1"), "Mozilla/5.0 (Linux; ArkWeb/2.0.1) like Gecko"),
+        ("Dillo", Some("0"), Some("8"), Some("4"), "Dillo/0.8.4"),
+        // Dillo has to stay behind Lynx, because this real user agent carries both tokens.
+        (
+            "Lynx",
+            Some("2"),
+            Some("8"),
+            Some("4rel"),
+            "Lynx/2.8.4rel.1 libwww-FM/2.14 Dillo/0.7.3 pl (X11; Linux)",
+        ),
     ];
 
     for (answer, major, minor, patch, user_agent) in test_cases {
@@ -390,4 +407,7 @@ cpu_parsers:
 
     assert_eq!(Some(Cow::from("my-mips")), cpu_only_parser.parse_cpu(MIPS_USER_AGENT).architecture);
     assert_eq!(Some(Cow::from("Gecko")), cpu_only_parser.parse_engine(MIPS_USER_AGENT).name);
+
+    // A second document would be silently dropped, so it is rejected instead.
+    assert!(UserAgentParser::from_str("os_parsers: []\n---\nos_parsers: []").is_err());
 }

@@ -37,8 +37,15 @@ static REGEXES: LazyLock<Vec<CPURegex>> = LazyLock::new(|| {
         cpu(r"(?i)(?:ppc|powerpc)64(?:le|el)?(?:\smac|;|\))", "ppc64"),
         cpu(r"(?i)(?:ppc|powerpc)(?:\smac|;|\))", "ppc"),
         cpu(r"(?i)sun4\w[;)]", "sparc"),
+        // `alpha/06` is a browser of its own, so the token only counts when one of the systems which ran on Alpha says it.
+        // Windows NT spells the architecture as a trailing `[AXP]` token instead of naming it.
+        cpu(
+            r"(?i)(?:\b(?:osf1|(?:free|open|net|dragonfly)bsd)(?:\s+v[\d.]+)?\s+alpha\b|winnt.+\[axp)",
+            "alpha",
+        ),
         cpu(r"(?i)ia64[;)]", "ia64"),
-        cpu(r"(?i)68k\)", "68k"),
+        // `MC680x0` is how AmigaOS spells the same family, with a literal `x` standing for the model digit.
+        cpu(r"(?i)(?:68k\)|mc680[\dx]0)", "68k"),
         // The leading `\b` keeps words such as `alarm` and `firearm` from being read as ARM.
         cpu(r"(?i)\b(?:aarch32|armeabi(?:[-_]v\d+)?)\b", "arm"),
         cpu(r"(?i)\barm(?:64|v\d+)?[;)l]", "arm"),
