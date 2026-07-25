@@ -13,5 +13,4 @@ pub use engine::Engine;
 pub use os::OS;
 pub use product::Product;
 #[cfg(any(feature = "rocket", feature = "axum"))]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "rocket", feature = "axum"))))]
 pub use user_agent::UserAgent;

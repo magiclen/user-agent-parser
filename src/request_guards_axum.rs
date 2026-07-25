@@ -23,7 +23,6 @@ fn parser(parts: &Parts) -> &Arc<UserAgentParser> {
     )
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S: Send + Sync> FromRequestParts<S> for UserAgent<'static> {
     type Rejection = Infallible;
 
@@ -38,7 +37,6 @@ impl<S: Send + Sync> FromRequestParts<S> for UserAgent<'static> {
 
 macro_rules! impl_from_request_parts {
     ($model:ident, $parse:ident) => {
-        #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
         impl<S: Send + Sync> FromRequestParts<S> for $model<'static> {
             type Rejection = Infallible;
 

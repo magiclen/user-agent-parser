@@ -19,7 +19,6 @@ fn from_request_user_agent<'r>(request: &'r Request<'_>) -> UserAgent<'r> {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for UserAgent<'r> {
     type Error = ();
@@ -29,7 +28,6 @@ impl<'r> FromRequest<'r> for UserAgent<'r> {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for &UserAgent<'r> {
     type Error = ();
@@ -44,7 +42,6 @@ impl<'r> FromRequest<'r> for &UserAgent<'r> {
 /// Implements both the owned and the cached-reference request guard of one model.
 macro_rules! impl_from_request {
     ($model:ident, $parse:ident) => {
-        #[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
         #[rocket::async_trait]
         impl<'r> FromRequest<'r> for $model<'r> {
             type Error = ();
@@ -54,7 +51,6 @@ macro_rules! impl_from_request {
             }
         }
 
-        #[cfg_attr(docsrs, doc(cfg(feature = "rocket")))]
         #[rocket::async_trait]
         impl<'r> FromRequest<'r> for &$model<'r> {
             type Error = ();
