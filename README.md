@@ -3,11 +3,11 @@ User Agent Parser
 
 [![CI](https://github.com/magiclen/user-agent-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/magiclen/user-agent-parser/actions/workflows/ci.yml)
 
-A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by https://github.com/faisalman/ua-parser-js and https://github.com/ua-parser/uap-core
+A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by <https://github.com/faisalman/ua-parser-js> and <https://github.com/ua-parser/uap-core>
 
 ## Usage
 
-You can make a **regexes.yaml** file or copy one from https://github.com/ua-parser/uap-core
+You can make a **regexes.yaml** file or copy one from <https://github.com/ua-parser/uap-core>
 
 This is a simple example of **regexes.yaml**.
 
