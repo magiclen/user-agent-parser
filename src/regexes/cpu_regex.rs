@@ -1,18 +1,20 @@
 use regex::Regex;
 
+use crate::regexes::Replacement;
+
 #[derive(Debug)]
 pub struct CPURegex {
     pub(crate) regex:                    Regex,
-    pub(crate) architecture_replacement: Option<String>,
+    pub(crate) architecture_replacement: Option<Replacement>,
 }
 
 impl CPURegex {
     pub fn built_in_regexes() -> Vec<CPURegex> {
         #[inline]
-        fn cpu(pattern: &str, architecture: &str) -> CPURegex {
+        fn cpu(pattern: &str, architecture: &'static str) -> CPURegex {
             CPURegex {
                 regex:                    Regex::new(pattern).unwrap(),
-                architecture_replacement: Some(architecture.to_string()),
+                architecture_replacement: Some(Replacement::new(architecture)),
             }
         }
 

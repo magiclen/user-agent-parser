@@ -1,15 +1,18 @@
 use regex::Regex;
 use yaml_rust::Yaml;
 
-use crate::UserAgentParserError;
+use crate::{
+    UserAgentParserError,
+    regexes::{Replacement, optional_replacement},
+};
 
 #[derive(Debug)]
 pub struct ProductRegex {
     pub(crate) regex:              Regex,
-    pub(crate) family_replacement: Option<String>,
-    pub(crate) v1_replacement:     Option<String>,
-    pub(crate) v2_replacement:     Option<String>,
-    pub(crate) v3_replacement:     Option<String>,
+    pub(crate) family_replacement: Option<Replacement>,
+    pub(crate) v1_replacement:     Option<Replacement>,
+    pub(crate) v2_replacement:     Option<Replacement>,
+    pub(crate) v3_replacement:     Option<Replacement>,
 }
 
 impl ProductRegex {
@@ -39,44 +42,12 @@ impl ProductRegex {
                         .ok_or(UserAgentParserError::IncorrectSource)?,
                 )?;
 
-                let family_replacement = match yaml.get(&yaml_family_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
-                let v1_replacement = match yaml.get(&yaml_v1_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
-                let v2_replacement = match yaml.get(&yaml_v2_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
-                let v3_replacement = match yaml.get(&yaml_v3_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
                 let user_agent_regex = ProductRegex {
                     regex,
-                    family_replacement,
-                    v1_replacement,
-                    v2_replacement,
-                    v3_replacement,
+                    family_replacement: optional_replacement(yaml, &yaml_family_replacement)?,
+                    v1_replacement: optional_replacement(yaml, &yaml_v1_replacement)?,
+                    v2_replacement: optional_replacement(yaml, &yaml_v2_replacement)?,
+                    v3_replacement: optional_replacement(yaml, &yaml_v3_replacement)?,
                 };
 
                 user_agent_regexes.push(user_agent_regex);

@@ -246,18 +246,16 @@ use std::{borrow::Cow, fs, path::Path, str::FromStr};
 
 pub use errors::UserAgentParserError;
 pub use models::*;
-use regex::Regex;
 use regexes::*;
 use yaml_rust::{Yaml, YamlLoader};
 
 #[derive(Debug)]
 pub struct UserAgentParser {
-    replacement_regex: Regex,
-    product_regexes:   Vec<ProductRegex>,
-    os_regexes:        Vec<OSRegex>,
-    device_regexes:    Vec<DeviceRegex>,
-    cpu_regexes:       Vec<CPURegex>,
-    engine_regexes:    Vec<EngineRegex>,
+    product_regexes: Vec<ProductRegex>,
+    os_regexes:      Vec<OSRegex>,
+    device_regexes:  Vec<DeviceRegex>,
+    cpu_regexes:     Vec<CPURegex>,
+    engine_regexes:  Vec<EngineRegex>,
 }
 
 impl UserAgentParser {
@@ -302,7 +300,6 @@ impl UserAgentParser {
                     };
 
                     Ok(UserAgentParser {
-                        replacement_regex: Regex::new(r"\$(\d){1,9}").unwrap(),
                         product_regexes: user_agent_regexes,
                         os_regexes,
                         device_regexes,
@@ -316,87 +313,16 @@ impl UserAgentParser {
     }
 }
 
-macro_rules! get_string {
-    ($index:expr, $replacement:expr, $replacement_regex:expr, $captures:expr) => {
-        match $replacement.as_ref() {
-            Some(replacement) => {
-                let replacement_captures_vec: Vec<_> =
-                    $replacement_regex.captures_iter(replacement).collect();
-
-                if replacement_captures_vec.is_empty() {
-                    Some(Cow::from(replacement))
-                } else {
-                    let mut replacement = replacement.to_string();
-
-                    let captures_len = $captures.len();
-
-                    for replacement_captures in replacement_captures_vec.into_iter().rev() {
-                        let index = replacement_captures[1].parse::<usize>().unwrap();
-
-                        let whole = replacement_captures.get(0).unwrap();
-
-                        if index < captures_len {
-                            replacement.replace_range(
-                                whole.start()..whole.end(),
-                                $captures.get(index).map_or("", |m| m.as_str()),
-                            );
-                        } else {
-                            replacement.replace_range(whole.start()..whole.end(), "");
-                        }
-                    }
-
-                    let start_trimmed_replacement = replacement.trim_start();
-
-                    if start_trimmed_replacement.len() != replacement.len() {
-                        replacement = start_trimmed_replacement.trim_end().to_string();
-                    } else {
-                        replacement.truncate(replacement.trim_end().len());
-                    }
-
-                    if replacement.is_empty() { None } else { Some(Cow::from(replacement)) }
-                }
-            },
-            None => match $captures.get($index).map(|m| m.as_str()) {
-                Some(s) => {
-                    let s = s.trim();
-
-                    if s.is_empty() { None } else { Some(Cow::from(s)) }
-                },
-                None => None,
-            },
-        }
-    };
-
-    ($index:expr, $captures:expr) => {
-        match $captures.get($index).map(|m| m.as_str()) {
-            Some(s) => {
-                let s = s.trim();
-
-                if s.is_empty() { None } else { Some(Cow::from(s)) }
-            },
-            None => None,
-        }
-    };
-}
-
 impl UserAgentParser {
     pub fn parse_product<'a, S: AsRef<str> + ?Sized>(&'a self, user_agent: &'a S) -> Product<'a> {
         let mut product = Product::default();
 
         for product_regex in self.product_regexes.iter() {
             if let Some(captures) = product_regex.regex.captures(user_agent.as_ref()) {
-                product.name = get_string!(
-                    1,
-                    product_regex.family_replacement,
-                    self.replacement_regex,
-                    captures
-                );
-                product.major =
-                    get_string!(2, product_regex.v1_replacement, self.replacement_regex, captures);
-                product.minor =
-                    get_string!(3, product_regex.v2_replacement, self.replacement_regex, captures);
-                product.patch =
-                    get_string!(4, product_regex.v3_replacement, self.replacement_regex, captures);
+                product.name = resolve(1, product_regex.family_replacement.as_ref(), &captures);
+                product.major = resolve(2, product_regex.v1_replacement.as_ref(), &captures);
+                product.minor = resolve(3, product_regex.v2_replacement.as_ref(), &captures);
+                product.patch = resolve(4, product_regex.v3_replacement.as_ref(), &captures);
 
                 break;
             }
@@ -414,15 +340,11 @@ impl UserAgentParser {
 
         for os_regex in self.os_regexes.iter() {
             if let Some(captures) = os_regex.regex.captures(user_agent.as_ref()) {
-                os.name = get_string!(1, os_regex.os_replacement, self.replacement_regex, captures);
-                os.major =
-                    get_string!(2, os_regex.os_v1_replacement, self.replacement_regex, captures);
-                os.minor =
-                    get_string!(3, os_regex.os_v2_replacement, self.replacement_regex, captures);
-                os.patch =
-                    get_string!(4, os_regex.os_v3_replacement, self.replacement_regex, captures);
-                os.patch_minor =
-                    get_string!(5, os_regex.os_v4_replacement, self.replacement_regex, captures);
+                os.name = resolve(1, os_regex.os_replacement.as_ref(), &captures);
+                os.major = resolve(2, os_regex.os_v1_replacement.as_ref(), &captures);
+                os.minor = resolve(3, os_regex.os_v2_replacement.as_ref(), &captures);
+                os.patch = resolve(4, os_regex.os_v3_replacement.as_ref(), &captures);
+                os.patch_minor = resolve(5, os_regex.os_v4_replacement.as_ref(), &captures);
 
                 break;
             }
@@ -440,24 +362,11 @@ impl UserAgentParser {
 
         for device_regex in self.device_regexes.iter() {
             if let Some(captures) = device_regex.regex.captures(user_agent.as_ref()) {
-                device.name = get_string!(
-                    1,
-                    device_regex.device_replacement,
-                    self.replacement_regex,
-                    captures
-                );
+                device.name = resolve(1, device_regex.device_replacement.as_ref(), &captures);
                 // uap-core gives the brand no positional default; it is only set when a `brand_replacement` exists.
-                device.brand = if device_regex.brand_replacement.is_some() {
-                    get_string!(2, device_regex.brand_replacement, self.replacement_regex, captures)
-                } else {
-                    None
-                };
-                device.model = get_string!(
-                    1,
-                    device_regex.model_replacement,
-                    self.replacement_regex,
-                    captures
-                );
+                device.brand =
+                    device_regex.brand_replacement.as_ref().and_then(|r| r.resolve(&captures));
+                device.model = resolve(1, device_regex.model_replacement.as_ref(), &captures);
 
                 break;
             }
@@ -475,12 +384,8 @@ impl UserAgentParser {
 
         for cpu_regex in self.cpu_regexes.iter() {
             if let Some(captures) = cpu_regex.regex.captures(user_agent.as_ref()) {
-                cpu.architecture = get_string!(
-                    1,
-                    cpu_regex.architecture_replacement,
-                    self.replacement_regex,
-                    captures
-                );
+                cpu.architecture =
+                    resolve(1, cpu_regex.architecture_replacement.as_ref(), &captures);
 
                 break;
             }
@@ -494,26 +399,10 @@ impl UserAgentParser {
 
         for engine_regex in self.engine_regexes.iter() {
             if let Some(captures) = engine_regex.regex.captures(user_agent.as_ref()) {
-                engine.name =
-                    get_string!(1, engine_regex.name_replacement, self.replacement_regex, captures);
-                engine.major = get_string!(
-                    2,
-                    engine_regex.engine_v1_replacement,
-                    self.replacement_regex,
-                    captures
-                );
-                engine.minor = get_string!(
-                    3,
-                    engine_regex.engine_v2_replacement,
-                    self.replacement_regex,
-                    captures
-                );
-                engine.patch = get_string!(
-                    4,
-                    engine_regex.engine_v3_replacement,
-                    self.replacement_regex,
-                    captures
-                );
+                engine.name = resolve(1, engine_regex.name_replacement.as_ref(), &captures);
+                engine.major = resolve(2, engine_regex.engine_v1_replacement.as_ref(), &captures);
+                engine.minor = resolve(3, engine_regex.engine_v2_replacement.as_ref(), &captures);
+                engine.patch = resolve(4, engine_regex.engine_v3_replacement.as_ref(), &captures);
 
                 break;
             }

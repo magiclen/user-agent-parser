@@ -1,21 +1,23 @@
 use regex::Regex;
 
+use crate::regexes::Replacement;
+
 #[derive(Debug)]
 pub struct EngineRegex {
     pub(crate) regex:                 Regex,
-    pub(crate) name_replacement:      Option<String>,
-    pub(crate) engine_v1_replacement: Option<String>,
-    pub(crate) engine_v2_replacement: Option<String>,
-    pub(crate) engine_v3_replacement: Option<String>,
+    pub(crate) name_replacement:      Option<Replacement>,
+    pub(crate) engine_v1_replacement: Option<Replacement>,
+    pub(crate) engine_v2_replacement: Option<Replacement>,
+    pub(crate) engine_v3_replacement: Option<Replacement>,
 }
 
 impl EngineRegex {
     pub fn built_in_regexes() -> Vec<EngineRegex> {
         #[inline]
-        fn engine(pattern: &str, name: &str) -> EngineRegex {
+        fn engine(pattern: &str, name: &'static str) -> EngineRegex {
             EngineRegex {
                 regex:                 Regex::new(pattern).unwrap(),
-                name_replacement:      Some(name.to_string()),
+                name_replacement:      Some(Replacement::new(name)),
                 engine_v1_replacement: None,
                 engine_v2_replacement: None,
                 engine_v3_replacement: None,

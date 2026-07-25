@@ -1,14 +1,17 @@
 use regex::{Regex, RegexBuilder};
 use yaml_rust::Yaml;
 
-use crate::UserAgentParserError;
+use crate::{
+    UserAgentParserError,
+    regexes::{Replacement, optional_replacement},
+};
 
 #[derive(Debug)]
 pub struct DeviceRegex {
     pub(crate) regex:              Regex,
-    pub(crate) device_replacement: Option<String>,
-    pub(crate) brand_replacement:  Option<String>,
-    pub(crate) model_replacement:  Option<String>,
+    pub(crate) device_replacement: Option<Replacement>,
+    pub(crate) brand_replacement:  Option<Replacement>,
+    pub(crate) model_replacement:  Option<Replacement>,
 }
 
 impl DeviceRegex {
@@ -31,30 +34,6 @@ impl DeviceRegex {
             for yaml in yamls {
                 let yaml = yaml.as_hash().ok_or(UserAgentParserError::IncorrectSource)?;
 
-                let device_replacement = match yaml.get(&yaml_device_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
-                let brand_replacement = match yaml.get(&yaml_brand_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
-                let model_replacement = match yaml.get(&yaml_model_replacement) {
-                    Some(yaml) => yaml
-                        .as_str()
-                        .map(|s| Some(s.to_string()))
-                        .ok_or(UserAgentParserError::IncorrectSource)?,
-                    None => None,
-                };
-
                 let case_insensitive = match yaml.get(&yaml_regex_flag) {
                     Some(yaml) => {
                         yaml.as_str().ok_or(UserAgentParserError::IncorrectSource)? == "i"
@@ -73,9 +52,9 @@ impl DeviceRegex {
 
                 let device_regex = DeviceRegex {
                     regex,
-                    device_replacement,
-                    brand_replacement,
-                    model_replacement,
+                    device_replacement: optional_replacement(yaml, &yaml_device_replacement)?,
+                    brand_replacement: optional_replacement(yaml, &yaml_brand_replacement)?,
+                    model_replacement: optional_replacement(yaml, &yaml_model_replacement)?,
                 };
 
                 device_regexes.push(device_regex);
