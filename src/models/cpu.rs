@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct CPU<'a> {
     pub architecture: Option<Cow<'a, str>>,

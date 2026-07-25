@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Device<'a> {
     pub name:  Option<Cow<'a, str>>,
     pub brand: Option<Cow<'a, str>>,

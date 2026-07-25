@@ -24,8 +24,12 @@ impl EngineRegex {
 
         vec![
             engine(r"(?i)(windows.+\sedge)/(\w+)(?:\.(\w+))?(?:\.(\w+))?", "EdgeHTML"),
-            // Blink is WebKit 537.36 with Chrome 28 or later; the class rewrites the original `chrome/(?!27)`.
-            engine(r"(?i)webkit/537\.36.+chrome/(?:[013-9]|2[0-689])", "Blink"),
+            // Blink is WebKit 537.36 with Chrome 28 or later, and its version is taken from the Chrome token.
+            // `\d{3,}` must come first, otherwise `[3-9]\d` would cut `130` down to `13`.
+            engine(
+                r"(?i)webkit/537\.36.+(chrome)/(\d{3,}|2[89]|[3-9]\d)(?:\.(\w+))?(?:\.(\w+))?",
+                "Blink",
+            ),
             engine(r"(?i)(presto)/(\w+)(?:\.(\w+))?(?:\.(\w+))?", "Presto"),
             engine(r"(?i)(webkit)/(\w+)(?:\.(\w+))?(?:\.(\w+))?", "WebKit"),
             engine(r"(?i)(trident)/(\w+)(?:\.(\w+))?(?:\.(\w+))?", "Trident"),

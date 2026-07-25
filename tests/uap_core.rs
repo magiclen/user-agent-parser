@@ -169,6 +169,20 @@ fn test_cpu() {
              Chrome/100.0.0.0 Safari/537.36",
         ),
         ("armhf", "Mozilla/5.0 (X11; Linux armv7hl; rv:100.0) Gecko/20100101 Firefox/100.0"),
+        ("arm64", "Mozilla/5.0 (X11; Linux armv9l; rv:130.0) Gecko/20100101 Firefox/130.0"),
+        ("arm", "Mozilla/5.0 (Windows NT 6.2; ARM; Trident/7.0; Touch; rv:11.0) like Gecko"),
+        (
+            "riscv64",
+            "Mozilla/5.0 (X11; Linux riscv64) AppleWebKit/537.36 (KHTML, like Gecko) \
+             Chrome/130.0.0.0 Safari/537.36",
+        ),
+        (
+            "loong64",
+            "Mozilla/5.0 (X11; Linux loongarch64) AppleWebKit/537.36 (KHTML, like Gecko) \
+             Chrome/130.0.0.0 Safari/537.36",
+        ),
+        ("mips64", "Mozilla/5.0 (X11; U; Linux mips64el; rv:60.0) Gecko/20100101 Firefox/60.0"),
+        ("ppc64", "Mozilla/5.0 (X11; U; Linux ppc64le; rv:60.0) Gecko/20100101 Firefox/60.0"),
     ];
 
     let ua_parser = UserAgentParser::from_path("uap-core/regexes.yaml").unwrap();
@@ -185,9 +199,9 @@ fn test_engine() {
     let test_cases = [
         (
             "Blink",
-            None,
-            None,
-            None,
+            Some("57"),
+            Some("0"),
+            Some("2987"),
             "Mozilla/5.0 (Linux; Android 7.0; SM-G920I Build/NRD90M) AppleWebKit/537.36 (KHTML, \
              like Gecko) OculusBrowser/3.4.9 SamsungBrowser/4.0 Chrome/57.0.2987.146 Mobile VR \
              Safari/537.36",

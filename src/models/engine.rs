@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Engine<'a> {
     pub name:  Option<Cow<'a, str>>,
     pub major: Option<Cow<'a, str>>,
