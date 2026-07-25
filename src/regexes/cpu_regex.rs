@@ -1,10 +1,14 @@
 use std::sync::LazyLock;
 
 use regex::Regex;
+use yaml_rust::Yaml;
 
-use crate::regexes::{Replacement, build_regex};
+use crate::{
+    UserAgentParserError,
+    regexes::{Replacement, build_regex, from_yaml_section, optional_replacement},
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct CPURegex {
     pub(crate) regex:                    Regex,
     pub(crate) architecture_replacement: Option<Replacement>,
@@ -13,7 +17,7 @@ pub(crate) struct CPURegex {
 /// The built-in patterns never change, so they are compiled once instead of once per `UserAgentParser`.
 static REGEXES: LazyLock<Vec<CPURegex>> = LazyLock::new(|| {
     #[inline]
-    fn cpu(pattern: &str, architecture: &'static str) -> CPURegex {
+    fn cpu(pattern: &str, architecture: &str) -> CPURegex {
         CPURegex {
             regex:                    build_regex(pattern, false).unwrap(),
             architecture_replacement: Some(Replacement::new(architecture)),
@@ -59,5 +63,20 @@ impl CPURegex {
     #[inline]
     pub(crate) fn built_in_regexes() -> &'static [CPURegex] {
         &REGEXES
+    }
+
+    /// Reads the `cpu_parsers` section, which is an extension of this crate rather than a part of the uap-core format.
+    pub(crate) fn from_yaml(yaml: &Yaml) -> Result<Vec<CPURegex>, UserAgentParserError> {
+        let yaml_architecture_replacement = Yaml::String("architecture_replacement".to_string());
+
+        from_yaml_section(yaml, |regex, yaml| {
+            Ok(CPURegex {
+                regex,
+                architecture_replacement: optional_replacement(
+                    yaml,
+                    &yaml_architecture_replacement,
+                )?,
+            })
+        })
     }
 }

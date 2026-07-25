@@ -3,6 +3,7 @@ mod device;
 mod engine;
 mod os;
 mod product;
+mod version;
 
 #[cfg(any(feature = "rocket", feature = "axum"))]
 mod user_agent;

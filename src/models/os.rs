@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use super::version::join_version;
+
 /// The operating system a user agent runs on.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct OS<'a> {
@@ -16,6 +18,33 @@ pub struct OS<'a> {
 }
 
 impl<'a> OS<'a> {
+    /// Joins the version parts into a full version string, stopping at the first part which is missing.
+    ///
+    /// ```
+    /// use std::borrow::Cow;
+    ///
+    /// use user_agent_parser::OS;
+    ///
+    /// let os = OS {
+    ///     name:        Some(Cow::from("Mac OS X")),
+    ///     major:       Some(Cow::from("10")),
+    ///     minor:       Some(Cow::from("15")),
+    ///     patch:       Some(Cow::from("7")),
+    ///     patch_minor: None,
+    /// };
+    ///
+    /// assert_eq!(Some(Cow::from("10.15.7")), os.version());
+    /// ```
+    #[inline]
+    pub fn version(&self) -> Option<Cow<'_, str>> {
+        join_version(&[
+            self.major.as_deref(),
+            self.minor.as_deref(),
+            self.patch.as_deref(),
+            self.patch_minor.as_deref(),
+        ])
+    }
+
     /// Extracts the owned data.
     #[inline]
     pub fn into_owned(self) -> OS<'static> {

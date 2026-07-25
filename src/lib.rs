@@ -1,11 +1,11 @@
 /*!
 # User Agent Parser
 
-A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by https://github.com/faisalman/ua-parser-js and https://github.com/ua-parser/uap-core
+A parser to get the product, OS, device, cpu, and engine information from a user agent, inspired by <https://github.com/faisalman/ua-parser-js> and <https://github.com/ua-parser/uap-core>
 
 ## Usage
 
-You can make a **regexes.yaml** file or copy one from https://github.com/ua-parser/uap-core
+You can make a **regexes.yaml** file or copy one from <https://github.com/ua-parser/uap-core>
 
 This is a simple example of **regexes.yaml**.
 
@@ -29,6 +29,21 @@ device_parsers:
     brand_replacement: '$1'
     model_replacement: '$2'
 ```
+
+The CPU and the layout engine are not a part of the uap-core format, so this crate ships its own patterns for them. The optional `cpu_parsers` and `engine_parsers` sections replace those built-in patterns.
+
+```yaml
+cpu_parsers:
+  - regex: 'sun4\w[;)]'
+    architecture_replacement: 'sparc'
+  - regex: '\b(riscv\d*)\b'
+
+engine_parsers:
+  - regex: '(myengine)/(\w+)(?:\.(\w+))?(?:\.(\w+))?'
+    engine_replacement: 'MyEngine'
+```
+
+In `cpu_parsers`, the first capture group is the architecture. In `engine_parsers`, the first one is the name, and the second, third and fourth ones are the major, minor and patch versions. A `*_replacement` overrides the group it stands for, just like in the sections above. Leaving a section out keeps every built-in pattern, and writing one down replaces all of them.
 
 Then, use the `from_path` (or `from_str` if your YAML data is in-memory) associated function to create a `UserAgentParser` instance.
 
@@ -65,6 +80,7 @@ println!("{:#?}", product);
 //        patch: Some(
 //            "0",
 //        ),
+//        patch_minor: None,
 //    }
 
 let os = ua_parser.parse_os(user_agent);
@@ -123,6 +139,18 @@ println!("{:#?}", engine);
 //        ),
 //        patch: None,
 //    }
+```
+
+The `Product`, `OS` and `Engine` models can also join their version parts into one string with the `version` method. It starts at the major version and stops at the first part which is missing.
+
+```rust,no_run
+use user_agent_parser::UserAgentParser;
+
+let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
+
+let product = ua_parser.parse_product("Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
+
+assert_eq!(Some("79.0.3945.79"), product.version().as_deref());
 ```
 
 The lifetime of result instances of the `parse_*` methods depends on the user-agent string and the `UserAgentParser` instance. To make it independent, call the `into_owned` method.
@@ -221,9 +249,9 @@ async fn main() {
 ## Testing
 
 ```bash
-# git clone --recurse-submodules git://github.com/magiclen/user-agent-parser.git
+# git clone --recurse-submodules https://github.com/magiclen/user-agent-parser.git
 
-git clone git://github.com/magiclen/user-agent-parser.git
+git clone https://github.com/magiclen/user-agent-parser.git
 
 cd user-agent-parser
 
@@ -259,8 +287,9 @@ pub struct UserAgentParser {
     product_regexes: Vec<ProductRegex>,
     os_regexes:      Vec<OSRegex>,
     device_regexes:  Vec<DeviceRegex>,
-    cpu_regexes:     &'static [CPURegex],
-    engine_regexes:  &'static [EngineRegex],
+    // A borrowed slice is the built-in list, which is what a source without the matching section gets.
+    cpu_regexes:     Cow<'static, [CPURegex]>,
+    engine_regexes:  Cow<'static, [EngineRegex]>,
 }
 
 impl UserAgentParser {
@@ -288,6 +317,8 @@ impl UserAgentParser {
                         yaml.get(&Yaml::String("user_agent_parsers".to_string()));
                     let os_parsers = yaml.get(&Yaml::String("os_parsers".to_string()));
                     let device_parsers = yaml.get(&Yaml::String("device_parsers".to_string()));
+                    let cpu_parsers = yaml.get(&Yaml::String("cpu_parsers".to_string()));
+                    let engine_parsers = yaml.get(&Yaml::String("engine_parsers".to_string()));
 
                     let product_regexes = match user_agent_parsers {
                         Some(user_agent_parsers) => ProductRegex::from_yaml(user_agent_parsers)?,
@@ -304,12 +335,23 @@ impl UserAgentParser {
                         None => Vec::new(),
                     };
 
+                    // The CPU and the engine sections are optional, and leaving one out keeps the built-in patterns instead of parsing nothing.
+                    let cpu_regexes = match cpu_parsers {
+                        Some(cpu_parsers) => Cow::from(CPURegex::from_yaml(cpu_parsers)?),
+                        None => Cow::from(CPURegex::built_in_regexes()),
+                    };
+
+                    let engine_regexes = match engine_parsers {
+                        Some(engine_parsers) => Cow::from(EngineRegex::from_yaml(engine_parsers)?),
+                        None => Cow::from(EngineRegex::built_in_regexes()),
+                    };
+
                     Ok(UserAgentParser {
                         product_regexes,
                         os_regexes,
                         device_regexes,
-                        cpu_regexes: CPURegex::built_in_regexes(),
-                        engine_regexes: EngineRegex::built_in_regexes(),
+                        cpu_regexes,
+                        engine_regexes,
                     })
                 },
                 None => Err(UserAgentParserError::IncorrectSource),
@@ -343,6 +385,8 @@ impl UserAgentParser {
             product.major = resolve(2, product_regex.v1_replacement.as_ref(), &captures);
             product.minor = resolve(3, product_regex.v2_replacement.as_ref(), &captures);
             product.patch = resolve(4, product_regex.v3_replacement.as_ref(), &captures);
+            // uap-core neither documents this fifth part nor gives it a replacement of its own, but its test data does expect it.
+            product.patch_minor = capture_str(5, &captures).map(Cow::from);
 
             break;
         }
@@ -423,9 +467,17 @@ impl UserAgentParser {
                 continue;
             }
 
-            let captures = cpu_regex.regex.captures(user_agent).unwrap();
+            cpu.architecture = match &cpu_regex.architecture_replacement {
+                // Every built-in pattern names its architecture with a literal, which is resolved without ever touching the captures.
+                Some(Replacement::Literal(architecture)) if !architecture.is_empty() => {
+                    Some(Cow::from(architecture.as_str()))
+                },
+                replacement => {
+                    let captures = cpu_regex.regex.captures(user_agent).unwrap();
 
-            cpu.architecture = resolve(1, cpu_regex.architecture_replacement.as_ref(), &captures);
+                    resolve(1, replacement.as_ref(), &captures)
+                },
+            };
 
             break;
         }
@@ -446,10 +498,11 @@ impl UserAgentParser {
 
             let captures = engine_regex.regex.captures(user_agent).unwrap();
 
-            engine.name = resolve(1, engine_regex.name_replacement.as_ref(), &captures);
-            engine.major = resolve(2, engine_regex.engine_v1_replacement.as_ref(), &captures);
-            engine.minor = resolve(3, engine_regex.engine_v2_replacement.as_ref(), &captures);
-            engine.patch = resolve(4, engine_regex.engine_v3_replacement.as_ref(), &captures);
+            // Every built-in pattern names its engine with a literal, and the versions always come straight from the captures.
+            engine.name = resolve(1, engine_regex.engine_replacement.as_ref(), &captures);
+            engine.major = capture_str(2, &captures).map(Cow::from);
+            engine.minor = capture_str(3, &captures).map(Cow::from);
+            engine.patch = capture_str(4, &captures).map(Cow::from);
 
             break;
         }

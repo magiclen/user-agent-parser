@@ -32,6 +32,21 @@ device_parsers:
     model_replacement: '$2'
 ```
 
+The CPU and the layout engine are not a part of the uap-core format, so this crate ships its own patterns for them. The optional `cpu_parsers` and `engine_parsers` sections replace those built-in patterns.
+
+```yaml
+cpu_parsers:
+  - regex: 'sun4\w[;)]'
+    architecture_replacement: 'sparc'
+  - regex: '\b(riscv\d*)\b'
+
+engine_parsers:
+  - regex: '(myengine)/(\w+)(?:\.(\w+))?(?:\.(\w+))?'
+    engine_replacement: 'MyEngine'
+```
+
+In `cpu_parsers`, the first capture group is the architecture. In `engine_parsers`, the first one is the name, and the second, third and fourth ones are the major, minor and patch versions. A `*_replacement` overrides the group it stands for, just like in the sections above. Leaving a section out keeps every built-in pattern, and writing one down replaces all of them.
+
 Then, use the `from_path` (or `from_str` if your YAML data is in-memory) associated function to create a `UserAgentParser` instance.
 
 
@@ -67,6 +82,7 @@ println!("{:#?}", product);
 //        patch: Some(
 //            "0",
 //        ),
+//        patch_minor: None,
 //    }
 
 let os = ua_parser.parse_os(user_agent);
@@ -125,6 +141,18 @@ println!("{:#?}", engine);
 //        ),
 //        patch: None,
 //    }
+```
+
+The `Product`, `OS` and `Engine` models can also join their version parts into one string with the `version` method. It starts at the major version and stops at the first part which is missing.
+
+```rust
+use user_agent_parser::UserAgentParser;
+
+let ua_parser = UserAgentParser::from_path("/path/to/regexes.yaml").unwrap();
+
+let product = ua_parser.parse_product("Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
+
+assert_eq!(Some("79.0.3945.79"), product.version().as_deref());
 ```
 
 The lifetime of result instances of the `parse_*` methods depends on the user-agent string and the `UserAgentParser` instance. To make it independent, call the `into_owned` method.
@@ -223,9 +251,9 @@ async fn main() {
 ## Testing
 
 ```bash
-# git clone --recurse-submodules git://github.com/magiclen/user-agent-parser.git
+# git clone --recurse-submodules https://github.com/magiclen/user-agent-parser.git
 
-git clone git://github.com/magiclen/user-agent-parser.git
+git clone https://github.com/magiclen/user-agent-parser.git
 
 cd user-agent-parser
 

@@ -11,7 +11,7 @@ pub(crate) use engine_regex::EngineRegex;
 pub(crate) use os_regex::OSRegex;
 pub(crate) use product_regex::ProductRegex;
 use regex::{Error as RegexError, Regex, RegexBuilder};
-pub(crate) use replacement::{Replacement, resolve};
+pub(crate) use replacement::{Replacement, capture_str, resolve};
 use yaml_rust::{Yaml, yaml::Hash};
 
 use crate::UserAgentParserError;
@@ -72,7 +72,7 @@ pub(crate) fn optional_replacement(
         Some(yaml) => {
             let text = yaml.as_str().ok_or(UserAgentParserError::IncorrectSource)?;
 
-            Ok(Some(Replacement::new(text.to_string())))
+            Ok(Some(Replacement::new(text)))
         },
         None => Ok(None),
     }

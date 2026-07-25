@@ -1,28 +1,26 @@
 use std::sync::LazyLock;
 
 use regex::Regex;
+use yaml_rust::Yaml;
 
-use crate::regexes::{Replacement, build_regex};
+use crate::{
+    UserAgentParserError,
+    regexes::{Replacement, build_regex, from_yaml_section, optional_replacement},
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct EngineRegex {
-    pub(crate) regex:                 Regex,
-    pub(crate) name_replacement:      Option<Replacement>,
-    pub(crate) engine_v1_replacement: Option<Replacement>,
-    pub(crate) engine_v2_replacement: Option<Replacement>,
-    pub(crate) engine_v3_replacement: Option<Replacement>,
+    pub(crate) regex:              Regex,
+    pub(crate) engine_replacement: Option<Replacement>,
 }
 
 /// The built-in patterns never change, so they are compiled once instead of once per `UserAgentParser`.
 static REGEXES: LazyLock<Vec<EngineRegex>> = LazyLock::new(|| {
     #[inline]
-    fn engine(pattern: &str, name: &'static str) -> EngineRegex {
+    fn engine(pattern: &str, name: &str) -> EngineRegex {
         EngineRegex {
-            regex:                 build_regex(pattern, false).unwrap(),
-            name_replacement:      Some(Replacement::new(name)),
-            engine_v1_replacement: None,
-            engine_v2_replacement: None,
-            engine_v3_replacement: None,
+            regex:              build_regex(pattern, false).unwrap(),
+            engine_replacement: Some(Replacement::new(name)),
         }
     }
 
@@ -59,5 +57,17 @@ impl EngineRegex {
     #[inline]
     pub(crate) fn built_in_regexes() -> &'static [EngineRegex] {
         &REGEXES
+    }
+
+    /// Reads the `engine_parsers` section, which is an extension of this crate rather than a part of the uap-core format.
+    pub(crate) fn from_yaml(yaml: &Yaml) -> Result<Vec<EngineRegex>, UserAgentParserError> {
+        let yaml_engine_replacement = Yaml::String("engine_replacement".to_string());
+
+        from_yaml_section(yaml, |regex, yaml| {
+            Ok(EngineRegex {
+                regex,
+                engine_replacement: optional_replacement(yaml, &yaml_engine_replacement)?,
+            })
+        })
     }
 }

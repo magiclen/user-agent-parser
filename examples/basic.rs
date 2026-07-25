@@ -24,6 +24,7 @@ fn main() {
     //        patch: Some(
     //            "0",
     //        ),
+    //        patch_minor: None,
     //    }
 
     let os = ua_parser.parse_os(user_agent);

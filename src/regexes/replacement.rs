@@ -6,10 +6,12 @@ use regex::Captures;
 const CAPTURE_LENGTH_GUESS: usize = 8;
 
 /// A replacement string whose `$1` .. `$9` placeholders are parsed once, when the parser is built.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum Replacement {
     /// No placeholder at all, so the text can be used as is.
-    Literal(Cow<'static, str>),
+    Literal(String),
+    /// A lone placeholder, which is the most common replacement of uap-core by far and needs nothing but the capture group.
+    Capture(usize),
     /// A mix of literal text and capture group indexes.
     Template {
         segments: Vec<Segment>,
@@ -18,17 +20,22 @@ pub(crate) enum Replacement {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum Segment {
     Literal(String),
     Capture(usize),
 }
 
 impl Replacement {
-    pub(crate) fn new<S: Into<Cow<'static, str>>>(text: S) -> Replacement {
-        let text = text.into();
+    pub(crate) fn new(text: &str) -> Replacement {
+        // Catching a lone placeholder before parsing keeps most of the templates from allocating anything at all.
+        if let [b'$', index] = text.as_bytes()
+            && index.is_ascii_digit()
+        {
+            return Replacement::Capture((index - b'0') as usize);
+        }
 
-        match Self::parse(text.as_ref()) {
+        match Self::parse(text) {
             Some(segments) => {
                 let capacity = segments
                     .iter()
@@ -44,13 +51,7 @@ impl Replacement {
                 }
             },
             // uap-core asks for the result to be trimmed, and a literal can be trimmed once here instead of on every match.
-            None => Replacement::Literal(match text {
-                Cow::Borrowed(text) => Cow::Borrowed(text.trim()),
-                Cow::Owned(text) => match text.trim() {
-                    trimmed if trimmed.len() == text.len() => Cow::Owned(text),
-                    trimmed => Cow::Owned(trimmed.to_string()),
-                },
-            }),
+            None => Replacement::Literal(text.trim().to_string()),
         }
     }
 
@@ -93,16 +94,12 @@ impl Replacement {
     pub(crate) fn resolve<'a>(&'a self, captures: &Captures<'a>) -> Option<Cow<'a, str>> {
         match self {
             Replacement::Literal(text) if text.is_empty() => None,
-            Replacement::Literal(text) => Some(Cow::from(text.as_ref())),
+            Replacement::Literal(text) => Some(Cow::from(text.as_str())),
+            Replacement::Capture(index) => capture_str(*index, captures).map(Cow::from),
             Replacement::Template {
                 segments,
                 capacity,
             } => {
-                // A lone `$1` is by far the most common template, and it needs no allocation at all.
-                if let [Segment::Capture(index)] = segments.as_slice() {
-                    return capture_str(*index, captures).map(Cow::from);
-                }
-
                 let mut result = String::with_capacity(*capacity);
 
                 for segment in segments {
@@ -141,7 +138,7 @@ pub(crate) fn resolve<'a>(
 }
 
 #[inline]
-fn capture_str<'a>(index: usize, captures: &Captures<'a>) -> Option<&'a str> {
+pub(crate) fn capture_str<'a>(index: usize, captures: &Captures<'a>) -> Option<&'a str> {
     let s = captures.get(index)?.as_str().trim();
 
     if s.is_empty() { None } else { Some(s) }

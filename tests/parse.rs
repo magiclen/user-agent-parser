@@ -42,7 +42,11 @@ fn for_each_test_case(path: &str, mut f: impl FnMut(&Hash)) {
 
 /// Reads one expected field of a test case, which may be missing entirely or be present without a value.
 fn field<'a>(test_case: &'a Hash, key: &Yaml) -> Option<Cow<'a, str>> {
-    test_case.get(key)?.as_str().map(Cow::from)
+    // An empty string is how uap-core writes down a capture group which took part in the match without capturing anything, which this crate reports as no value at all.
+    match test_case.get(key)?.as_str()? {
+        "" => None,
+        text => Some(Cow::from(text)),
+    }
 }
 
 #[test]
@@ -52,6 +56,7 @@ fn test_product() {
     let yaml_major = Yaml::String("major".to_string());
     let yaml_minor = Yaml::String("minor".to_string());
     let yaml_patch = Yaml::String("patch".to_string());
+    let yaml_patch_minor = Yaml::String("patch_minor".to_string());
 
     for path in PRODUCT_TEST_FILES {
         for_each_test_case(path, |test_case| {
@@ -68,6 +73,13 @@ fn test_product() {
             assert_eq!(major, product.major, "{path}: {user_agent}");
             assert_eq!(minor, product.minor, "{path}: {user_agent}");
             assert_eq!(patch, product.patch, "{path}: {user_agent}");
+
+            // Unlike the OS test files, these only record `patch_minor` on some of their cases, so the others cannot be checked.
+            if test_case.contains_key(&yaml_patch_minor) {
+                let patch_minor = field(test_case, &yaml_patch_minor);
+
+                assert_eq!(patch_minor, product.patch_minor, "{path}: {user_agent}");
+            }
         });
     }
 }
@@ -182,10 +194,10 @@ fn test_cpu() {
         ("ppc64", "Mozilla/5.0 (X11; U; Linux ppc64le; rv:60.0) Gecko/20100101 Firefox/60.0"),
     ];
 
-    for (answer, user_agent) in test_cases.iter() {
+    for (answer, user_agent) in test_cases {
         let cpu = UA_PARSER.parse_cpu(user_agent);
 
-        assert_eq!(Some(Cow::from(*answer)), cpu.architecture);
+        assert_eq!(Some(Cow::from(answer)), cpu.architecture);
     }
 }
 
@@ -292,12 +304,90 @@ fn test_engine() {
         ("ArkWeb", Some("2"), Some("0"), Some("1"), "Mozilla/5.0 (Linux; ArkWeb/2.0.1) like Gecko"),
     ];
 
-    for (answer, major, minor, patch, user_agent) in test_cases.iter() {
+    for (answer, major, minor, patch, user_agent) in test_cases {
         let engine = UA_PARSER.parse_engine(user_agent);
 
-        assert_eq!(Some(Cow::from(*answer)), engine.name);
+        assert_eq!(Some(Cow::from(answer)), engine.name);
         assert_eq!(major.map(Cow::from), engine.major);
         assert_eq!(minor.map(Cow::from), engine.minor);
         assert_eq!(patch.map(Cow::from), engine.patch);
     }
+}
+
+#[test]
+fn test_version() {
+    // The fourth part of the first product version is the one https://github.com/magiclen/user-agent-parser/issues/2 could not reach.
+    let test_cases = [
+        (
+            Some("79.0.3945.79"),
+            None,
+            Some("79.0.3945"),
+            "Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) \
+             Chrome/79.0.3945.79 Safari/537.36",
+        ),
+        (
+            Some("17.6"),
+            Some("10.15.7"),
+            Some("605.1.15"),
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like \
+             Gecko) Version/17.6 Safari/605.1.15",
+        ),
+        (None, None, None, "there-is-no-user-agent-here"),
+    ];
+
+    for (product, os, engine, user_agent) in test_cases {
+        assert_eq!(product.map(Cow::from), UA_PARSER.parse_product(user_agent).version());
+        assert_eq!(os.map(Cow::from), UA_PARSER.parse_os(user_agent).version());
+        assert_eq!(engine.map(Cow::from), UA_PARSER.parse_engine(user_agent).version());
+    }
+}
+
+#[test]
+fn test_custom_cpu_and_engine_parsers() {
+    // Neither section is a part of the uap-core format, so both of them are checked against a source written just for this test.
+    const CUSTOM_PARSERS: &str = r"
+cpu_parsers:
+  - regex: '\bmips64(?:el)?\b'
+    architecture_replacement: 'my-mips'
+  - regex: '\b(riscv\d*)\b'
+
+engine_parsers:
+  - regex: '(myengine)/(\w+)(?:\.(\w+))?(?:\.(\w+))?'
+    regex_flag: 'i'
+    engine_replacement: 'MyEngine'
+";
+
+    const CPU_ONLY_PARSERS: &str = r"
+cpu_parsers:
+  - regex: '\bmips64(?:el)?\b'
+    architecture_replacement: 'my-mips'
+";
+
+    const MIPS_USER_AGENT: &str =
+        "Mozilla/5.0 (X11; U; Linux mips64el; rv:60.0) Gecko/20100101 Firefox/60.0";
+
+    let ua_parser = UserAgentParser::from_str(CUSTOM_PARSERS).unwrap();
+
+    // A section replaces the built-in patterns as a whole, so this no longer reports the built-in `mips64`.
+    assert_eq!(Some(Cow::from("my-mips")), ua_parser.parse_cpu(MIPS_USER_AGENT).architecture);
+    assert_eq!(None, ua_parser.parse_engine(MIPS_USER_AGENT).name);
+
+    // A pattern without a replacement takes its architecture from the first capture group.
+    let cpu = ua_parser.parse_cpu("Mozilla/5.0 (X11; Linux riscv64) AppleWebKit/537.36");
+
+    assert_eq!(Some(Cow::from("riscv64")), cpu.architecture);
+
+    // The replacement wins over the first capture group, which `regex_flag` let match in another case.
+    let engine = ua_parser.parse_engine("Mozilla/5.0 (X11; Linux x86_64) MyEngine/2.0.1");
+
+    assert_eq!(Some(Cow::from("MyEngine")), engine.name);
+    assert_eq!(Some(Cow::from("2")), engine.major);
+    assert_eq!(Some(Cow::from("0")), engine.minor);
+    assert_eq!(Some(Cow::from("1")), engine.patch);
+
+    // A source which writes down only one of the two sections keeps the built-in patterns of the other one.
+    let cpu_only_parser = UserAgentParser::from_str(CPU_ONLY_PARSERS).unwrap();
+
+    assert_eq!(Some(Cow::from("my-mips")), cpu_only_parser.parse_cpu(MIPS_USER_AGENT).architecture);
+    assert_eq!(Some(Cow::from("Gecko")), cpu_only_parser.parse_engine(MIPS_USER_AGENT).name);
 }
